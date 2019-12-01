@@ -1,4 +1,3 @@
-(*
 -- Day 1: The Tyranny of the Rocket Equation ---
 
 Santa has become stranded at the edge of the Solar System while delivering presents to other planets! 
@@ -26,26 +25,10 @@ For example:
 The Fuel Counter-Upper needs to know the total fuel requirement. To find it, individually calculate the fuel needed for the mass of each module (your puzzle input), then add together all the fuel values.
 
 What is the sum of the fuel requirements for all of the modules on your spacecraft?
-*)
-module Day1
-
-    open System
-    
-    let input = 
-        System.IO.File.ReadLines("day1input") 
-        |> Seq.map int
-    
-    let fuelByWeight weight = (weight / 3) - 2
-
-    let moduleFuel =
-        input
-        |> Seq.sumBy fuelByWeight
-
-    // 3252897    
 
 
 
-(* 
+
 --- Part Two ---
 
 During the second Go / No Go poll, the Elf in charge of the Rocket Equation Double-Checker stops the launch sequence. 
@@ -68,14 +51,3 @@ as the input mass and repeat the process, continuing until a fuel requirement is
 
 What is the sum of the fuel requirements for all of the modules on your spacecraft when also taking into account the 
 mass of the added fuel? (Calculate the fuel requirements for each module separately, then add them all up at the end.)
-*)
-    let rec totalFuel currentTotal fuelWeight =
-        if fuelWeight <= 0 then currentTotal
-        else totalFuel (currentTotal + fuelWeight) (fuelByWeight fuelWeight)
-    
-    let Run =
-        input
-        |> Seq.map fuelByWeight
-        |> Seq.sumBy (totalFuel 0)
-// 4879304 (wrong because I didn't run it per module, I ran it on the output from part 1)
-// 4876469
