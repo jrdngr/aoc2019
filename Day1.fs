@@ -77,4 +77,5 @@ mass of the added fuel? (Calculate the fuel requirements for each module separat
         input
         |> Seq.map fuelByWeight
         |> Seq.sumBy (totalFuel 0)
-// 4879304 (wrong)
+// 4879304 (wrong because I didn't run it per module, I ran it on the output from part 1)
+// 4876469
