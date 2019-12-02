@@ -3,6 +3,7 @@
 let run dayNumber =
     printfn "Running day #%s..." dayNumber
     let result = match dayNumber with
+                 | "p" | "play" | "playground" -> Playground.Run
                  | "1" -> Day1.Run
                  | "2" -> Day2.Run
                  | _ -> "Invalid day number"
