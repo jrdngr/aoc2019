@@ -66,6 +66,27 @@ let anyOf listOfChars =
     |> List.map pchar
     |> choice
 
+let mapParser f parser =
+    let innerFn input =
+        let result = run parser input
+
+        match result with
+        | Success (value, remaining) ->
+            let newValue = f value
+            Success (newValue, remaining)
+        | Failure err -> Failure err
+    
+    Parser innerFn
+
+let ( <!> ) = mapParser
+let ( |>> ) x f = mapParser f x
+
+
+
+(*
+    Library ends here
+*)
+
 let Run = 
     let debug = printfn "%A"
 
@@ -90,14 +111,27 @@ let Run =
     // debug <| run aAndThenBorC "QBZ"
     // debug <| run aAndThenBorC "AQZ"
 
-    let parseLowercase = anyOf ['a'..'z']
+    // let parseLowercase = anyOf ['a'..'z']
+    // let parseDigit = anyOf ['0'..'9']
+
+    // debug <| run parseLowercase "aBC"
+    // debug <| run parseLowercase "ABC"
+
+    // debug <| run parseDigit "1ABC"
+    // debug <| run parseDigit "9ABC"
+    // debug <| run parseDigit "|ABC"
+
+    // -- PART 2 --
+
     let parseDigit = anyOf ['0'..'9']
 
-    debug <| run parseLowercase "aBC"
-    debug <| run parseLowercase "ABC"
+    let parseThreeDigitsAsStr =
+        (parseDigit .>>. parseDigit .>>. parseDigit)
+        |>> fun ((c1, c2), c3) -> String [| c1; c2; c3 |]
 
-    debug <| run parseDigit "1ABC"
-    debug <| run parseDigit "9ABC"
-    debug <| run parseDigit "|ABC"
+    let parseThreeDigitsAsInt = mapParser int parseThreeDigitsAsStr
+
+    // debug <| run parseThreeDigitsAsStr "123A"
+    debug <| run parseThreeDigitsAsInt "123A"
 
     "Parser"
