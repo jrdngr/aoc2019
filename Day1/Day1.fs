@@ -3,7 +3,7 @@ module Day1
     open System 
     
     let input = 
-        System.IO.File.ReadLines("Day1/day1input") 
+        System.IO.File.ReadLines("Day1/input") 
         |> Seq.map int
     
     let fuelByWeight weight = (weight / 3) - 2
