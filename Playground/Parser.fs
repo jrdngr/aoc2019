@@ -81,6 +81,15 @@ let mapParser f parser =
 let ( <!> ) = mapParser
 let ( |>> ) x f = mapParser f x
 
+let returnParser x =
+    let innerFn input = Success (x, input)
+    Parser innerFn
+
+let applyParser fParser xParser =
+    (fParser .>>. xParser)
+    |> mapParser (fun (f, x) -> f x)
+
+let ( <*> ) = applyParser
 
 
 (*
@@ -123,15 +132,19 @@ let Run =
 
     // -- PART 2 --
 
-    let parseDigit = anyOf ['0'..'9']
+    // let parseDigit = anyOf ['0'..'9']
 
-    let parseThreeDigitsAsStr =
-        (parseDigit .>>. parseDigit .>>. parseDigit)
-        |>> fun ((c1, c2), c3) -> String [| c1; c2; c3 |]
+    // let parseThreeDigitsAsStr =
+    //     (parseDigit .>>. parseDigit .>>. parseDigit)
+    //     |>> fun ((c1, c2), c3) -> String [| c1; c2; c3 |]
 
-    let parseThreeDigitsAsInt = mapParser int parseThreeDigitsAsStr
+    // let parseThreeDigitsAsInt = mapParser int parseThreeDigitsAsStr
 
     // debug <| run parseThreeDigitsAsStr "123A"
-    debug <| run parseThreeDigitsAsInt "123A"
+    // debug <| run parseThreeDigitsAsInt "123A"
+
+    let lift2 f xParser yParser = returnParser f <*> xParser <*> yParser
+
+    let addParsre = lift2 (+)
 
     "Parser"
