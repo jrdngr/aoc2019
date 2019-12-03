@@ -6,8 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Playground/Parser.fs" />
-    <Compile Include="Playground/Playground.fs" />
+    <Compile Include="Tools/Parser.fs" />
+    <Compile Include="Tools/Playground.fs" />
     <Compile Include="Day1/Day1.fs" />
     <Compile Include="Day2/Day2.fs" />
     <Compile Include="Day3/Day3.fs" />
