@@ -6,6 +6,7 @@ let run dayNumber =
                  | "p" | "play" | "playground" -> Playground.Run
                  | "1" -> Day1.Run
                  | "2" -> Day2.Run
+                 | "3" -> Day3.Run
                  | _ -> "Invalid day number"
 
     printfn "%s" result
