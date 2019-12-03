@@ -22,7 +22,7 @@ let processOp input op =
     | Mul (x, y, pos) -> setRegister input pos (x * y)
     | Halt -> input
 
-let processProgram noun verb =
+let processProgram (noun,verb) =
     let mutable registers = 
         System.IO.File.ReadAllText("Day2/input").Split([|','|])
         |> Seq.map int
@@ -40,13 +40,20 @@ let processProgram noun verb =
             currentPosition <- currentPosition + 4
         | Error e -> failwith e
     
-    registers.[0]
+    (noun, verb, registers.[0])
 
 let Run = 
-    let part1 = processProgram 12 2
+    let part2 = 
+        [for noun in 0..99 do for verb in 0..99 do yield noun,verb]
+        |> List.map processProgram
+        |> List.filter (fun (_, _, result) -> result = 19690720)
 
-    sprintf "%A" part1
+    let (n, v, _) = part2.[0]
+    
+    let answer = 100 * n + v 
+
+    sprintf "%A" answer
 
 
 // Part 1: 7594646
-// Part 2: 
+// Part 2: 3376
