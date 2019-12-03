@@ -22,30 +22,30 @@ let processOp input op =
     | Mul (x, y, pos) -> setRegister input pos (x * y)
     | Halt -> input
 
-let processProgram (input:byref<_>) noun verb =
-    let mutable currentPosition = 0
-
-    input <- setRegister input 1 noun
-    input <- setRegister input 2 verb
-
-    while parseOpAtPosition input currentPosition <> Ok Halt do
-        match parseOpAtPosition input currentPosition with
-        | Ok op -> 
-            input <- processOp input op
-            currentPosition <- currentPosition + 4
-        | Error e -> failwith e
-    
-    input.[0]
-
-let Run = 
+let processProgram noun verb =
     let mutable registers = 
         System.IO.File.ReadAllText("Day2/input").Split([|','|])
         |> Seq.map int
         |> Seq.toList
 
-    let result = processProgram &registers 12 2
+    let mutable currentPosition = 0
 
-    sprintf "%A" result
+    registers <- setRegister registers 1 noun
+    registers <- setRegister registers 2 verb
+
+    while parseOpAtPosition registers currentPosition <> Ok Halt do
+        match parseOpAtPosition registers currentPosition with
+        | Ok op -> 
+            registers <- processOp registers op
+            currentPosition <- currentPosition + 4
+        | Error e -> failwith e
+    
+    registers.[0]
+
+let Run = 
+    let part1 = processProgram 12 2
+
+    sprintf "%A" part1
 
 
 // Part 1: 7594646
