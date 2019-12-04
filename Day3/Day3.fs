@@ -1,5 +1,7 @@
 module Day3
 
+// This is terrible
+
 type PathSegment =
     | Up of int
     | Down of int
@@ -46,6 +48,7 @@ let wireToCell wire =
 let mutable grid: Map<int*int,Cell> = Map.empty
 
 let processCell wire position =
+    printfn "%A, %A" (fst position) (snd position)
     if Map.containsKey position grid then
         grid <- match Map.find position grid with
                 | Wire1Present when wire = Wire2 -> grid.Add(position, CrossedWires)
@@ -62,38 +65,45 @@ let targetPosition (startX, startY) segment=
    | Left dist  -> (startX - dist, startY)
 
 let addSegment wire (startX, startY) segment =
-   let endX, endY = targetPosition (startX, startY) segment
-   let xDiff = endX - startX
-   let yDiff = endY - startY
-   let steps = max xDiff yDiff
-   let xs = if xDiff > 0 then [for x in startX..endX do yield x] else [for _ in 0..steps do yield endX]
-   let ys = if yDiff > 0 then [for y in startY..endY do yield y] else [for _ in 0..steps do yield endY]
-   Seq.zip xs ys
-   |> Seq.iter (processCell wire)
-   (endX, endY)
+    let endX, endY = targetPosition (startX, startY) segment
+    let xDiff = endX - startX
+    let yDiff = endY - startY
+    let steps = max xDiff yDiff
+    let xs = if xDiff > 0 then [for x in startX..endX do yield x] else [for _ in 0..steps do yield endX]
+    let ys = if yDiff > 0 then [for y in startY..endY do yield y] else [for _ in 0..steps do yield endY]
+    Seq.zip xs ys
+    |> Seq.iter (processCell wire)
+    (endX, endY)
 
 let getDistance w1 w2 =
+    printfn "%A" w1
     Seq.fold (fun pos seg -> addSegment Wire1 pos seg) (0, 0) w1 |> ignore
+    printfn "%A" w2
     Seq.fold (fun pos seg -> addSegment Wire2 pos seg) (0, 0) w2 |> ignore
     let crosses = Map.filter (fun _ value -> value = CrossedWires) grid
 
     crosses
 
-
-let Test1 =
-    // distance = 159
-    let w1 = "R75,D30,R83,U83,L12,D49,R71,U7,L72".Split([|','|]) |> Array.map parseSegment
-    let w2 = "U62,R66,U55,R34,D71,R55,D58,R83".Split([|','|]) |> Array.map parseSegment
-    let crosses = getDistance w1 w2
-    sprintf "%A" (distanceFromCenter (158,-12))
-
-
-let Test2 =
-    // distance = 135
-    let w1 = "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51".Split([|','|]) |> Array.map parseSegment
-    let w2 = "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7".Split([|','|]) |> Array.map parseSegment
+let Test1 = 
+    // distance = 6
+    let w1 = "R8,U5,L5,D3".Split([|','|]) |> Array.map parseSegment
+    let w2 = "U7,R6,D4,L4".Split([|','|]) |> Array.map parseSegment
     let crosses = getDistance w1 w2
     sprintf "%A" crosses
+
+// let Test2 =
+//     // distance = 159
+//     let w1 = "R75,D30,R83,U83,L12,D49,R71,U7,L72".Split([|','|]) |> Array.map parseSegment
+//     let w2 = "U62,R66,U55,R34,D71,R55,D58,R83".Split([|','|]) |> Array.map parseSegment
+//     let crosses = getDistance w1 w2
+//     sprintf "%A" (distanceFromCenter (158,-12))
+
+// let Test3 =
+//     // distance = 135
+//     let w1 = "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51".Split([|','|]) |> Array.map parseSegment
+//     let w2 = "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7".Split([|','|]) |> Array.map parseSegment
+//     let crosses = getDistance w1 w2
+//     sprintf "%A" crosses
 
 let Run =
     printfn "%A" Test1
