@@ -63,8 +63,41 @@ let targetPosition (startX, startY) segment=
 
 let addSegment wire (startX, startY) segment =
    let endX, endY = targetPosition (startX, startY) segment
-   Seq.zip [for x in startX..endX do yield x] [for y in startY..endY do yield y]
+   let xDiff = endX - startX
+   let yDiff = endY - startY
+   let steps = max xDiff yDiff
+   let xs = if xDiff > 0 then [for x in startX..endX do yield x] else [for _ in 0..steps do yield endX]
+   let ys = if yDiff > 0 then [for y in startY..endY do yield y] else [for _ in 0..steps do yield endY]
+   Seq.zip xs ys
    |> Seq.iter (processCell wire)
    (endX, endY)
 
-let Run = sprintf "%A" wire2
+let getDistance w1 w2 =
+    Seq.fold (fun pos seg -> addSegment Wire1 pos seg) (0, 0) w1 |> ignore
+    Seq.fold (fun pos seg -> addSegment Wire2 pos seg) (0, 0) w2 |> ignore
+    let crosses = Map.filter (fun _ value -> value = CrossedWires) grid
+
+    crosses
+
+
+let Test1 =
+    // distance = 159
+    let w1 = "R75,D30,R83,U83,L12,D49,R71,U7,L72".Split([|','|]) |> Array.map parseSegment
+    let w2 = "U62,R66,U55,R34,D71,R55,D58,R83".Split([|','|]) |> Array.map parseSegment
+    let crosses = getDistance w1 w2
+    sprintf "%A" (distanceFromCenter (158,-12))
+
+
+let Test2 =
+    // distance = 135
+    let w1 = "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51".Split([|','|]) |> Array.map parseSegment
+    let w2 = "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7".Split([|','|]) |> Array.map parseSegment
+    let crosses = getDistance w1 w2
+    sprintf "%A" crosses
+
+let Run =
+    printfn "%A" Test1
+    // printfn "%A" Test2
+    // let crosses = getDistance wire1 wire2
+    // sprintf "%A" crosses
+    ""
