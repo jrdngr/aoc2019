@@ -7,6 +7,7 @@ let run dayNumber =
                  | "1" -> Day1.Run
                  | "2" -> Day2.Run
                  | "3" -> Day3.Run
+                 | "4" -> Day4.Run
                  | _ -> "Invalid day number"
 
     printfn "%s" result
