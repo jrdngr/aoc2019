@@ -36,21 +36,16 @@ pub fn read_input_list(day_number: u8, delimiter: u8) -> Result<Vec<String>> {
     Ok(result)
 }
 
-pub fn read_input_i64_list(day_number: u8, delimiter: u8) -> Result<Vec<i64>> {
+pub fn read_input_list_as_i64(day_number: u8, delimiter: u8) -> Result<Vec<i64>> {
     read_converted_input_list(day_number, delimiter, |element| i64::from_str(element).unwrap())
 }
 
 pub fn read_converted_input_list<F, T>(day_number: u8, delimiter: u8, converter: F) -> Result<Vec<T>> 
 where F: Fn(&str) -> T
 {
-    let file = input_file_reader(day_number)?;
-    let result = file
-        .split(delimiter)
-        .map(|element| {
-            let element = element.unwrap();
-            let element = String::from_utf8(element).unwrap();
-            converter(&element)
-        })
+    let result = read_input_list(day_number, delimiter)?
+        .into_iter()
+        .map(|element| converter(&element))
         .collect();
     Ok(result)
 }
