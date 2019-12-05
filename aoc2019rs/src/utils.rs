@@ -15,14 +15,14 @@ pub fn input_file_reader(day_number: u8) -> Result<BufReader<File>> {
 
 pub fn read_input_lines(day_number: u8) -> Result<Vec<String>> {
     let file = input_file_reader(day_number)?;
-    let result = file.lines().map(|line| line.unwrap()).collect();
+    let result = file.lines().flatten().collect();
     Ok(result)
 }
 
 pub fn read_input_lines_as_i64(day_number: u8) -> Result<Vec<i64>> {
     let result = read_input_lines(day_number)?
         .into_iter()
-        .map(|line| i64::from_str(&line).unwrap())
+        .flat_map(|line| i64::from_str(&line))
         .collect();
     Ok(result)
 }
@@ -31,7 +31,8 @@ pub fn read_input_list(day_number: u8, delimiter: u8) -> Result<Vec<String>> {
     let file = input_file_reader(day_number)?;
     let result = file
         .split(delimiter)
-        .map(|element| String::from_utf8(element.unwrap()).unwrap())
+        .flatten()
+        .flat_map(String::from_utf8)
         .collect();
     Ok(result)
 }
