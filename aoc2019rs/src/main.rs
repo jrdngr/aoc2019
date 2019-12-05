@@ -9,11 +9,11 @@ fn main() -> Result<()> {
     println!("Running day #{}...", day_num);
 
     let result = match day_num.as_ref() {
-        "1" => solutions::day1::run(),
-        "2" => solutions::day2::run(),
-        "3" => solutions::day3::run(),
-        "4" => solutions::day4::run(),
-        "5" => solutions::day5::run(),
+        "1" => solutions::day1::run()?,
+        "2" => solutions::day2::run()?,
+        "3" => solutions::day3::run()?,
+        "4" => solutions::day4::run()?,
+        "5" => solutions::day5::run()?,
         _   => bail!("Invalid day number: {}", day_num),
     };
 
