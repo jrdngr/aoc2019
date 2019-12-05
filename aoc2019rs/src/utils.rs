@@ -19,10 +19,12 @@ pub fn read_input_lines(day_number: u8) -> Result<Vec<String>> {
     Ok(result)
 }
 
-pub fn read_input_lines_as_i64(day_number: u8) -> Result<Vec<i64>> {
+pub fn read_input_lines_as<T>(day_number: u8) -> Result<Vec<T>> 
+where T: FromStr
+{
     let result = read_input_lines(day_number)?
         .into_iter()
-        .flat_map(|line| i64::from_str(&line))
+        .flat_map(|line| T::from_str(&line))
         .collect();
     Ok(result)
 }
@@ -37,16 +39,12 @@ pub fn read_input_list(day_number: u8, delimiter: u8) -> Result<Vec<String>> {
     Ok(result)
 }
 
-pub fn read_input_list_as_i64(day_number: u8, delimiter: u8) -> Result<Vec<i64>> {
-    read_converted_input_list(day_number, delimiter, |element| i64::from_str(element).unwrap())
-}
-
-pub fn read_converted_input_list<F, T>(day_number: u8, delimiter: u8, converter: F) -> Result<Vec<T>> 
-where F: Fn(&str) -> T
+pub fn read_input_list_as<T>(day_number: u8, delimiter: u8) -> Result<Vec<T>> 
+where T: FromStr
 {
     let result = read_input_list(day_number, delimiter)?
         .into_iter()
-        .map(|element| converter(&element))
+        .flat_map(|element| T::from_str(&element))
         .collect();
     Ok(result)
 }
