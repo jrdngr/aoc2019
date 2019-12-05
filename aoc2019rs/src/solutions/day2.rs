@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 use crate::utils;
 use crate::intcode::IntcodeMachine;
@@ -6,15 +6,25 @@ use crate::intcode::IntcodeMachine;
 pub fn run() -> Result<String> {
     let program = utils::read_input_list_as::<usize>(2, b',')?;
     
-    let part_1_result = run_test(&program, 12, 2)?;
+    // let part_1_result = run_test(&program, 12, 2)?;
 
-    Ok(format!("{}", part_1_result))
+    for noun in 0..=99 {
+        for verb in 0..=99 {
+            let result = run_test(&program, noun, verb)?;
+            if result == 19690720 {
+                return Ok(format!("{}", 100 * noun + verb));
+            }
+            
+        }
+    }
+
+    bail!("Couldn't find inputs with output 19690720")
 }
 
-fn run_test(program: &[usize], input1: usize, input2: usize) -> Result<usize> {
+fn run_test(program: &[usize], noun: usize, verb: usize) -> Result<usize> {
     let mut machine = IntcodeMachine::new(&program);
-    machine.write_memory(1, input1);
-    machine.write_memory(2, input2);
+    machine.write_memory(1, noun);
+    machine.write_memory(2, verb);
     machine.run()?;
 
     Ok(machine.read_memory(0))
