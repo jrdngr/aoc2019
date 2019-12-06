@@ -3,7 +3,6 @@ use anyhow::Result;
 use std::io::{BufRead, BufReader};
 use std::fs::File;
 use std::str::FromStr;
-use std::ops::{Div, Rem, Sub};
 
 pub fn input_file_name(day_number: u8) -> String {
     format!("input/input{}", day_number)
@@ -50,15 +49,15 @@ where T: FromStr
     Ok(result)
 }
 
-pub fn into_digits<T>(value: &T) -> Vec<T> 
-where T: Copy + Ord + Sub<Output=T> + Div<usize, Output=T> + Rem<usize, Output=T>
-{
+pub fn i64_into_digits(value: &i64) -> Vec<usize> {
+    usize_into_digits(&(*value as usize))
+}
+
+pub fn usize_into_digits(value: &usize) -> Vec<usize> {
     let mut result = Vec::with_capacity(6);
 
-    let zero =  *value - *value;
     let mut current_value = *value;
-
-    while current_value > zero {
+    while current_value > 0 {
         result.push(current_value % 10);
         current_value = current_value / 10;
     }

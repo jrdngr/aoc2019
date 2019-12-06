@@ -2,6 +2,8 @@ use anyhow::{bail, Result};
 
 use std::convert::TryFrom;
 
+use crate::utils;
+
 pub struct IntcodeMachine {
     instruction_pointer: usize,
     memory: Vec<i64>,
@@ -17,27 +19,8 @@ impl IntcodeMachine {
 
     pub fn run(&mut self) -> Result<()> {
         while let Ok(instruction) = self.read_instruction() {
-            // match instruction {
-            //     Add(x, y, position) => {
-            //         self.memory[position as usize] = x + y;
-            //         self.instruction_pointer += 4;
-            //     },
-            //     Multiply(x, y, position) => {
-            //         self.memory[position as usize] = x * y;
-            //         self.instruction_pointer += 4;
-            //     }
-            //     Input(position) => {
-            //         self.memory[position as usize] = self.input();
-            //         self.instruction_pointer += 2;
-            //     },
-            //     Output(position) => {
-            //         self.output(self.memory[position as usize]);
-            //         self.instruction_pointer += 2;
-            //     },
-            //     Halt => break,
-            // }
-            
-            self.instruction_pointer += 4;
+            instruction.operate(self);
+            self.instruction_pointer += instruction.length();
         }
 
         Ok(())
@@ -61,6 +44,13 @@ impl IntcodeMachine {
         self.memory[position] = value;
     }
 
+    pub fn get_value(&self, mode: Mode, value: i64) -> i64 {
+        match mode {
+            Mode::Position => self.read_memory(value as usize),
+            Mode::Immediate => value as i64,
+        }
+    }
+
     pub fn input(&self) -> i64 {
         0
     }
@@ -75,29 +65,57 @@ impl IntcodeMachine {
         } else {
             let mem = &self.memory;
             let ptr = self.instruction_pointer;
+            let operation = MachineOperation::new(mem[ptr])?;
             
-            Ok(match mem[ptr] {
-                // 1 => Add(mem[mem[ptr + 1] as usize], mem[mem[ptr + 2] as usize], mem[ptr + 3]),
-                // 2 => Multiply(mem[mem[ptr + 1] as usize], mem[mem[ptr + 2] as usize], mem[ptr + 3]),
-                // 3 => Input(mem[ptr + 1]),
-                // 4 => Output(mem[ptr + 1]),
-                // 99 => Halt,
+            Ok(match operation.opcode {
+                1 => Box::new(Add::new(operation, self)),
+                2 => Box::new(Multiply::new(operation, self)),
+                3 => Box::new(Input::new(operation, self)),
+                4 => Box::new(Output::new(operation, self)),
+                99 => Box::new(Halt),
                 _ => bail!("Invalid instruction: {}", mem[ptr]),
             })
         }
     }
 }
 
+pub struct MachineOperation {
+    pub opcode: usize,
+    pub param1_mode: Mode,
+    pub param2_mode: Mode,
+    pub param3_mode: Mode,
+}
+
+impl MachineOperation {
+    pub fn new(instruction: i64) -> Result<Self> {
+        let digits: Vec<usize> = utils::i64_into_digits(&instruction)
+        .into_iter()
+        .rev()
+        .collect();
+
+        if digits.is_empty() {
+            bail!("Failed to split digits");
+        }
+
+        Ok(MachineOperation {
+            opcode: digits[0] + 10 * digits.get(1).unwrap_or(&0),
+            param1_mode: Mode::try_from(*digits.get(2).unwrap_or(&0))?,
+            param2_mode: Mode::try_from(*digits.get(3).unwrap_or(&0))?,
+            param3_mode: Mode::try_from(*digits.get(4).unwrap_or(&0))?,
+        })
+    }
+}
+
 pub trait IntcodeInstruction {
     fn operate(&self, machine: &mut IntcodeMachine);
-    fn instruction_length(&self) -> usize;
+    fn length(&self) -> usize;
 }
 
 pub struct Halt;
 
 impl IntcodeInstruction for Halt {
     fn operate(&self, _: &mut IntcodeMachine) { }
-    fn instruction_length(&self) -> usize { 1 }
+    fn length(&self) -> usize { 1 }
 }
 
 pub struct Add {
@@ -107,11 +125,12 @@ pub struct Add {
 }
 
 impl Add {
-    pub fn new(machine: &IntcodeMachine) -> Self {
+    pub fn new(op: MachineOperation, machine: &IntcodeMachine) -> Self {
+        let params = machine.read_slice_from_ptr(4);
         Self {
-            x: 0,
-            y: 0,
-            position: 0,
+            x: machine.get_value(op.param1_mode, params[1]),
+            y: machine.get_value(op.param2_mode, params[2]),
+            position: machine.get_value(op.param3_mode, params[3]) as usize,
         }
     }
 }
@@ -121,7 +140,7 @@ impl IntcodeInstruction for Add {
         machine.write_memory(self.position, self.x + self.y);
     }
 
-    fn instruction_length(&self) -> usize { 4 }
+    fn length(&self) -> usize { 4 }
 }
 
 pub struct Multiply {
@@ -131,11 +150,12 @@ pub struct Multiply {
 }
 
 impl Multiply {
-    pub fn new(mode: Mode) -> Self {
+    pub fn new(op: MachineOperation, machine: &IntcodeMachine) -> Self {
+        let params = machine.read_slice_from_ptr(4);
         Self {
-            x: 0,
-            y: 0,
-            position: 0,
+            x: machine.get_value(op.param1_mode, params[1]),
+            y: machine.get_value(op.param2_mode, params[2]),
+            position: machine.get_value(op.param3_mode, params[3]) as usize,
         }
     }
 }
@@ -145,7 +165,7 @@ impl IntcodeInstruction for Multiply {
         machine.write_memory(self.position, self.x * self.y);
     }
     
-    fn instruction_length(&self) -> usize { 4 }
+    fn length(&self) -> usize { 4 }
 }
 
 pub struct Input {
@@ -153,9 +173,10 @@ pub struct Input {
 }
 
 impl Input {
-    pub fn new(mode: Mode) -> Self {
+    pub fn new(op: MachineOperation, machine: &IntcodeMachine) -> Self {
+        let params = machine.read_slice_from_ptr(2);
         Self {
-            position: 0,
+            position: machine.get_value(op.param1_mode, params[1]) as usize,
         }
     }
 }
@@ -166,7 +187,7 @@ impl IntcodeInstruction for Input {
         machine.write_memory(self.position, input);
     }
     
-    fn instruction_length(&self) -> usize { 2 }
+    fn length(&self) -> usize { 2 }
 }
 
 pub struct Output {
@@ -174,9 +195,10 @@ pub struct Output {
 }
 
 impl Output {
-    pub fn new(mode: Mode) -> Self {
+    pub fn new(op: MachineOperation, machine: &IntcodeMachine) -> Self {
+        let params = machine.read_slice_from_ptr(2);
         Self {
-            position: 0,
+            position: machine.get_value(op.param1_mode, params[1]) as usize,
         }
     }
 }
@@ -187,7 +209,7 @@ impl IntcodeInstruction for Output {
         machine.output(value);
     }
 
-    fn instruction_length(&self) -> usize { 2 }
+    fn length(&self) -> usize { 2 }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -196,10 +218,10 @@ pub enum Mode {
     Immediate,
 }
 
-impl TryFrom<i64> for Mode {
+impl TryFrom<usize> for Mode {
     type Error = anyhow::Error;
 
-    fn try_from(value: i64) -> Result<Self> {
+    fn try_from(value: usize) -> Result<Self> {
         Ok(match value {
             0 => Mode::Position,
             1 => Mode::Immediate,

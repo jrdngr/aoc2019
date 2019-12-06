@@ -19,7 +19,7 @@ pub fn run() -> Result<String> {
 }
 
 fn digits_increasing(value: &usize) -> bool {
-    let digits = utils::into_digits::<usize>(value);
+    let digits = utils::usize_into_digits(value);
 
     for i in 0..digits.len()-1 {
         if digits[i] > digits[i+1] {
@@ -43,7 +43,7 @@ fn digits_increasing(value: &usize) -> bool {
 // }
 
 fn contains_strict_double(value: &usize) -> bool {
-    let digits = utils::into_digits::<usize>(value);
+    let digits = utils::usize_into_digits(value);
 
     let mut digit_counts = HashMap::new();
 
