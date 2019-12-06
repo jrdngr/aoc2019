@@ -36,6 +36,7 @@ impl IntcodeMachine {
             let instruction = self.read_instruction()?;
             match instruction.operate(self)? {
                 NextStep::Jump(steps) => self.instruction_pointer += steps,
+                NextStep::Set(position) => self.instruction_pointer = position,
                 NextStep::Halt => break,
             }
         }
@@ -127,6 +128,10 @@ pub enum IntcodeInstruction {
     Multiply{x: i64, y: i64, position: usize},
     Input{position: usize},
     Output{position: usize},
+    JumpIfTrue{should_jump: bool, position: usize},
+    JumpIfFalse{should_jump: bool, position: usize},
+    IsLessThan{x: i64, y: i64, position: usize},
+    IsEquals{x: i64, y: i64, position: usize},
     Halt,
 }
 
@@ -158,6 +163,32 @@ impl IntcodeInstruction {
                 let params = machine.read_slice_from_ptr(2);
                 Output{ position: params[1] as usize }
             },
+            5 => {
+                let params = machine.read_slice_from_ptr(3);
+                let test_value = machine.get_value(operation.param1_mode, params[1]);
+                JumpIfTrue{ should_jump: test_value > 0, position: params[2] as usize }
+            },
+            6 => {
+                let params = machine.read_slice_from_ptr(3);
+                let test_value = machine.get_value(operation.param1_mode, params[1]);
+                JumpIfTrue{ should_jump: test_value == 0, position: params[2] as usize }
+            },
+            7 => {
+                let params = machine.read_slice_from_ptr(4);
+                IsLessThan {
+                    x: machine.get_value(operation.param1_mode, params[1]),
+                    y: machine.get_value(operation.param2_mode, params[2]),
+                    position: params[3] as usize,
+                }
+            },
+            8 => {
+                let params = machine.read_slice_from_ptr(4);
+                IsEquals {
+                    x: machine.get_value(operation.param1_mode, params[1]),
+                    y: machine.get_value(operation.param2_mode, params[2]),
+                    position: params[3] as usize,
+                }
+            },
             99 => Halt,
             _ => bail!("Invalid instruction: {:?}", operation),
         })
@@ -184,6 +215,36 @@ impl IntcodeInstruction {
                 machine.output(value);
                 NextStep::Jump(2)
             },
+            JumpIfTrue{should_jump, position} => {
+                if *should_jump {
+                    NextStep::Set(*position)
+                } else {
+                    NextStep::Jump(3)
+                }
+            },
+            JumpIfFalse{should_jump, position} => {
+                if *should_jump {
+                    NextStep::Set(*position)
+                } else {
+                    NextStep::Jump(3)
+                }
+            },
+            IsLessThan{x, y, position} => {
+                if x < y {
+                    machine.write_memory(*position, 1);
+                } else {
+                    machine.write_memory(*position, 0);
+                }
+                NextStep::Jump(4)
+            },
+            IsEquals{x, y, position} => {
+                if x == y {
+                    machine.write_memory(*position, 1);
+                } else {
+                    machine.write_memory(*position, 0);
+                }
+                NextStep::Jump(4)
+            },
             Halt => NextStep::Halt,
         })
     }
@@ -191,6 +252,7 @@ impl IntcodeInstruction {
 
 pub enum NextStep {
     Jump(usize),
+    Set(usize),
     Halt,
 }
 
