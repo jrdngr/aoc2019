@@ -2,6 +2,8 @@ use anyhow::Result;
 
 use std::collections::HashMap;
 
+use crate::utils;
+
 // Part 1: 511
 // Part 2: 316
 
@@ -17,7 +19,7 @@ pub fn run() -> Result<String> {
 }
 
 fn digits_increasing(value: &usize) -> bool {
-    let digits = into_digits(value);
+    let digits = utils::into_digits::<usize>(value);
 
     for i in 0..digits.len()-1 {
         if digits[i] > digits[i+1] {
@@ -41,7 +43,7 @@ fn digits_increasing(value: &usize) -> bool {
 // }
 
 fn contains_strict_double(value: &usize) -> bool {
-    let digits = into_digits(value);
+    let digits = utils::into_digits::<usize>(value);
 
     let mut digit_counts = HashMap::new();
 
@@ -51,16 +53,4 @@ fn contains_strict_double(value: &usize) -> bool {
     }
     
     digit_counts.values().any(|&ct| ct == 2)
-}
-
-fn into_digits(value: &usize) -> Vec<usize> {
-    let mut result = Vec::with_capacity(6);
-
-    let mut current_value = *value;
-    while current_value > 0 {
-        result.push(current_value % 10);
-        current_value /= 10;
-    }
-
-    result.into_iter().rev().collect()
 }
