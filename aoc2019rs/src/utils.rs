@@ -1,8 +1,9 @@
 use anyhow::Result;
 
-use std::io::{BufRead, BufReader};
+use std::io::{Read, BufRead, BufReader};
 use std::fs::File;
 use std::str::FromStr;
+
 
 pub fn input_file_name(day_number: u8) -> String {
     format!("input/input{}", day_number)
@@ -63,4 +64,11 @@ pub fn usize_into_digits(value: &usize) -> Vec<usize> {
     }
 
     result.into_iter().rev().collect()
+}
+
+pub fn read_input() -> Result<String> {
+    print!("Enter input: ");
+    let mut buffer = String::new();
+    std::io::stdin().read_to_string(&mut buffer)?;
+    Ok(buffer)
 }

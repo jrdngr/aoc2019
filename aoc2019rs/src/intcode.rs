@@ -1,6 +1,7 @@
 use anyhow::{bail, Result};
 
 use std::convert::TryFrom;
+use std::str::FromStr;
 
 use crate::utils;
 
@@ -19,7 +20,7 @@ impl IntcodeMachine {
 
     pub fn run(&mut self) -> Result<()> {
         while let Ok(instruction) = self.read_instruction() {
-            instruction.operate(self);
+            instruction.operate(self)?;
             self.instruction_pointer += instruction.length();
         }
 
@@ -51,8 +52,9 @@ impl IntcodeMachine {
         }
     }
 
-    pub fn input(&self) -> i64 {
-        0
+    pub fn input(&self) -> Result<i64> {
+        let input = utils::read_input()?;
+        Ok(i64::from_str(&input)?)
     }
 
     pub fn output(&self, value: i64) {
@@ -107,14 +109,16 @@ impl MachineOperation {
 }
 
 pub trait IntcodeInstruction {
-    fn operate(&self, machine: &mut IntcodeMachine);
+    fn operate(&self, machine: &mut IntcodeMachine) -> Result<()>;
     fn length(&self) -> usize;
 }
 
 pub struct Halt;
 
 impl IntcodeInstruction for Halt {
-    fn operate(&self, _: &mut IntcodeMachine) { }
+    fn operate(&self, _: &mut IntcodeMachine)  -> Result<()> { 
+        Ok(())
+    }
     fn length(&self) -> usize { 1 }
 }
 
@@ -136,8 +140,9 @@ impl Add {
 }
 
 impl IntcodeInstruction for Add {
-    fn operate(&self, machine: &mut IntcodeMachine) {
+    fn operate(&self, machine: &mut IntcodeMachine) -> Result<()> {
         machine.write_memory(self.position, self.x + self.y);
+        Ok(())
     }
 
     fn length(&self) -> usize { 4 }
@@ -161,8 +166,9 @@ impl Multiply {
 }
 
 impl IntcodeInstruction for Multiply {
-    fn operate(&self, machine: &mut IntcodeMachine) {
+    fn operate(&self, machine: &mut IntcodeMachine) -> Result<()> {
         machine.write_memory(self.position, self.x * self.y);
+        Ok(())
     }
     
     fn length(&self) -> usize { 4 }
@@ -182,9 +188,10 @@ impl Input {
 }
 
 impl IntcodeInstruction for Input {
-    fn operate(&self, machine: &mut IntcodeMachine) {
-        let input = machine.input();
+    fn operate(&self, machine: &mut IntcodeMachine) -> Result<()> {
+        let input = machine.input()?;
         machine.write_memory(self.position, input);
+        Ok(())
     }
     
     fn length(&self) -> usize { 2 }
@@ -204,9 +211,10 @@ impl Output {
 }
 
 impl IntcodeInstruction for Output {
-    fn operate(&self, machine: &mut IntcodeMachine) {
+    fn operate(&self, machine: &mut IntcodeMachine) -> Result<()> {
         let value = machine.read_memory(self.position);
         machine.output(value);
+        Ok(())
     }
 
     fn length(&self) -> usize { 2 }
