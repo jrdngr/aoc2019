@@ -45,7 +45,6 @@ impl IntcodeMachine {
         self.memory[position] = value;
     }
 
-    #[cfg(test)]
     pub fn memory_as_slice(&self) -> &[i64] {
         &self.memory
     }
@@ -178,7 +177,7 @@ impl IntcodeInstruction for Multiply {
         machine.write_memory(self.position, self.x * self.y);
         Ok(())
     }
-    
+
     fn length(&self) -> usize { 4 }
 }
 
@@ -252,6 +251,7 @@ impl TryFrom<usize> for Mode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils;
 
     fn test_input(input: &[i64]) -> Vec<i64> {
         let mut machine = IntcodeMachine::new(&input);
@@ -265,5 +265,15 @@ mod tests {
         assert_eq!(test_input(&[2,3,0,3,99]), vec![2,3,0,6,99]);
         assert_eq!(test_input(&[2,4,4,5,99,0]), vec![2,4,4,5,99,9801]);
         assert_eq!(test_input(&[1,1,1,4,99,5,6,0,99]), vec![30,1,1,4,2,5,6,0,99]);
+    }
+
+    #[test]
+    fn day2_part1() {
+        let program = utils::read_input_list_as::<i64>(2, b',').unwrap();
+        let mut machine = IntcodeMachine::new(&program);
+        machine.write_memory(1, 12);
+        machine.write_memory(2, 2);
+        machine.run().unwrap();
+        assert_eq!(machine.read_memory(0), 7594646);
     }
 }

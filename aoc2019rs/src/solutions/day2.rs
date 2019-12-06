@@ -6,17 +6,18 @@ use crate::intcode::IntcodeMachine;
 pub fn run() -> Result<String> {
     let program = utils::read_input_list_as::<i64>(2, b',')?;
     
-    // let part_1_result = run_test(&program, 12, 2)?;
+    let part_1_result = run_test(&program, 12, 2)?;
+    dbg!(part_1_result);
 
-    for noun in 0..=99 {
-        for verb in 0..=99 {
-            let result = run_test(&program, noun, verb)?;
-            if result == 19690720 {
-                return Ok(format!("{}", 100 * noun + verb));
-            }
+    // for noun in 0..=99 {
+    //     for verb in 0..=99 {
+    //         let result = run_test(&program, noun, verb)?;
+    //         if result == 19690720 {
+    //             return Ok(format!("{}", 100 * noun + verb));
+    //         }
             
-        }
-    }
+    //     }
+    // }
 
     bail!("Couldn't find inputs with output 19690720")
 }
