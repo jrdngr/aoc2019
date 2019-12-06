@@ -22,8 +22,13 @@ impl IntcodeMachine {
         }
     }
 
+    #[cfg(test)]
+    pub fn teardown(self) -> (Vec<i64>, Box<dyn IntcodeInput>, Box<dyn IntcodeOutput>) {
+        (self.memory, self.input, self.output)
+    }
+
     pub fn new_console_machine(machine_code: &[i64]) -> Self {
-        Self::new(machine_code, Box::new(IntcodeConsoleInput), Box::new(IntcodeConsoleOutput))
+        Self::new(machine_code, Box::new(IntcodeConsoleInput), Box::new(IntcodeConsoleOutput::new()))
     }
 
     pub fn run(&mut self) -> Result<()> {
@@ -68,11 +73,11 @@ impl IntcodeMachine {
         }
     }
 
-    pub fn input(&self) -> Result<i64> {
+    pub fn input(&mut self) -> Result<i64> {
         self.input.process()
     }
 
-    pub fn output(&self, value: i64) {
+    pub fn output(&mut self, value: i64) {
         self.output.process(value)
     }
 
@@ -208,27 +213,81 @@ impl TryFrom<usize> for Mode {
 }
 
 pub trait IntcodeInput {
-    fn process(&self) -> Result<i64>;
+    fn process(&mut self) -> Result<i64>;
 }
 
 pub trait IntcodeOutput {
-    fn process(&self, value: i64);
+    fn process(&mut self, value: i64);
+    fn history(&self) -> &[String];
 }
 
 pub struct IntcodeConsoleInput;
 
 impl IntcodeInput for IntcodeConsoleInput {
-    fn process(&self) -> Result<i64> {
+    fn process(&mut self) -> Result<i64> {
         let input = utils::read_input()?;
         Ok(i64::from_str(&input)?)
     }
 }
 
-pub struct IntcodeConsoleOutput;
+pub struct IntcodeConsoleOutput {
+    history: Vec<String>,
+}
+
+impl IntcodeConsoleOutput {
+    pub fn new() -> Self {
+        Self { history: Vec::new() }
+    }
+}
 
 impl IntcodeOutput for IntcodeConsoleOutput {
-    fn process(&self, value: i64) {
+    fn process(&mut self, value: i64) {
         println!("Output: {}", value);
+    }
+
+    fn history(&self) -> &[String] {
+        &self.history
+    }
+}
+
+#[cfg(test)]
+pub struct IntcodePresetInput {
+    inputs: Box<dyn Iterator<Item=i64>>,
+}#[cfg(test)]
+#[cfg(test)]
+impl IntcodePresetInput {
+    pub fn new(inputs: &[i64]) -> Self {
+        Self { inputs: Box::new(inputs.to_vec().into_iter()) }
+    }
+}
+#[cfg(test)]
+impl IntcodeInput for IntcodePresetInput {
+    fn process(&mut self) -> Result<i64> {
+        match self.inputs.next() {
+            Some(input) => Ok(input),
+            None => bail!("Ran out of inputs"),
+        }
+    }
+}
+
+#[cfg(test)]
+pub struct IntcodeHistoryOutput {
+    history: Vec<String>,
+}
+#[cfg(test)]
+impl IntcodeHistoryOutput {
+    pub fn new() -> Self {
+        Self { history: Vec::new() }
+    }
+}
+#[cfg(test)]
+impl IntcodeOutput for IntcodeHistoryOutput {
+    fn process(&mut self, value: i64) {
+        self.history.push(format!("{}", value));
+    }
+    
+    fn history(&self) -> &[String] {
+        &self.history
     }
 }
 
@@ -294,6 +353,16 @@ mod tests {
 
     #[test]
     fn day5_part1() {
+        let input = day5_input();
+        let input_handler = Box::new(IntcodePresetInput::new(&[1]));
+        let output_handler = Box::new(IntcodeHistoryOutput::new());
+        let mut machine = IntcodeMachine::new(&input, input_handler, output_handler);
+        machine.run().unwrap();
+        let (_, _, output_handler) = machine.teardown();
+        assert_eq!(output_handler.history().iter().last().unwrap(), "9025675");
+    }
 
+    fn day5_input() -> Vec<i64> {
+        utils::read_input_list_as::<i64>(5, b',').unwrap()
     }
 }
