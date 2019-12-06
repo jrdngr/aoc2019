@@ -69,22 +69,14 @@ impl IntcodeMachine {
         println!("Output: {}", value);
     }
 
-    fn read_instruction(&self) -> Result<Box<dyn IntcodeInstruction>> {
+    fn read_instruction(&self) -> Result<IntcodeInstruction> {
         if self.instruction_pointer >= self.memory.len() {
             bail!("Instruction pointer out of range")
         } else {
             let mem = &self.memory;
             let ptr = self.instruction_pointer;
             let operation = MachineOperation::new(mem[ptr])?;
-            
-            Ok(match operation.opcode {
-                1 => Box::new(Add::new(operation, self)),
-                2 => Box::new(Multiply::new(operation, self)),
-                3 => Box::new(Input::new(self)),
-                4 => Box::new(Output::new(self)),
-                99 => Box::new(Halt),
-                _ => bail!("Invalid instruction: {}", mem[ptr]),
-            })
+            IntcodeInstruction::new(operation, self)
         }
     }
 }
@@ -117,116 +109,77 @@ impl MachineOperation {
     }
 }
 
-pub enum NextStep {
-    Jump(usize),
+#[derive(Debug, PartialEq)]
+pub enum IntcodeInstruction {
+    Add{x: i64, y: i64, position: usize},
+    Multiply{x: i64, y: i64, position: usize},
+    Input{position: usize},
+    Output{position: usize},
     Halt,
 }
 
-pub trait IntcodeInstruction: std::fmt::Debug {
-    fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep>;
-}
+impl IntcodeInstruction {
+    pub fn new(operation: MachineOperation, machine: &IntcodeMachine) -> Result<Self> {
+        use IntcodeInstruction::*;
+        Ok(match operation.opcode {
+            1 => {
+                let params = machine.read_slice_from_ptr(4);
+                Add {
+                    x: machine.get_value(operation.param1_mode, params[1]),
+                    y: machine.get_value(operation.param2_mode, params[2]),
+                    position: params[3] as usize,
+                }
+            },
+            2 =>  {
+                let params = machine.read_slice_from_ptr(4);
+                Multiply{ 
+                    x: machine.get_value(operation.param1_mode, params[1]),
+                    y: machine.get_value(operation.param2_mode, params[2]),
+                    position: params[3] as usize,
+                }                
+            },
+            3 =>  {
+                let params = machine.read_slice_from_ptr(2);
+                Input{ position: params[1] as usize }
+            },
+            4 =>  {
+                let params = machine.read_slice_from_ptr(2);
+                Output{ position: params[1] as usize }
+            },
+            99 => Halt,
+            _ => bail!("Invalid instruction: {:?}", operation),
+        })
+    }
 
-#[derive(Debug)]
-pub struct Halt;
-
-impl IntcodeInstruction for Halt {
-    fn operate(&self, _: &mut IntcodeMachine)  -> Result<NextStep> { 
-        Ok(NextStep::Halt)
+    pub fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep> {
+        use IntcodeInstruction::*;
+        Ok(match self {
+            Add{x, y, position} => {
+                machine.write_memory(*position, x + y);
+                NextStep::Jump(4)
+            },
+            Multiply{x, y, position} => {
+                machine.write_memory(*position, x * y);
+                NextStep::Jump(4)
+            },
+            Input{position} => {
+                let input = machine.input()?;
+                machine.write_memory(*position, input);
+                NextStep::Jump(2)
+            },
+            Output{position} => {
+                let value = machine.read_memory(*position);
+                machine.output(value);
+                NextStep::Jump(2)
+            },
+            Halt => NextStep::Halt,
+        })
     }
 }
 
-#[derive(Debug)]
-pub struct Add {
-    x: i64,
-    y: i64,
-    position: usize,
-}
-
-impl Add {
-    pub fn new(op: MachineOperation, machine: &IntcodeMachine) -> Self {
-        let params = machine.read_slice_from_ptr(4);
-        Self {
-            x: machine.get_value(op.param1_mode, params[1]),
-            y: machine.get_value(op.param2_mode, params[2]),
-            position: params[3] as usize,
-        }
-    }
-}
-
-impl IntcodeInstruction for Add {
-    fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep> {
-        machine.write_memory(self.position, self.x + self.y);
-        Ok(NextStep::Jump(4))
-    }
-}
-
-#[derive(Debug)]
-pub struct Multiply {
-    x: i64,
-    y: i64,
-    position: usize,
-}
-
-impl Multiply {
-    pub fn new(op: MachineOperation, machine: &IntcodeMachine) -> Self {
-        let params = machine.read_slice_from_ptr(4);
-        Self {
-            x: machine.get_value(op.param1_mode, params[1]),
-            y: machine.get_value(op.param2_mode, params[2]),
-            position: params[3] as usize,
-        }
-    }
-}
-
-impl IntcodeInstruction for Multiply {
-    fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep> {
-        machine.write_memory(self.position, self.x * self.y);
-        Ok(NextStep::Jump(4))
-    }
-}
-
-#[derive(Debug)]
-pub struct Input {
-    position: usize,
-}
-
-impl Input {
-    pub fn new(machine: &IntcodeMachine) -> Self {
-        let params = machine.read_slice_from_ptr(2);
-        Self {
-            position: params[1] as usize,
-        }
-    }
-}
-
-impl IntcodeInstruction for Input {
-    fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep> {
-        let input = machine.input()?;
-        machine.write_memory(self.position, input);
-        Ok(NextStep::Jump(2))
-    }
-}
-
-#[derive(Debug)]
-pub struct Output {
-    position: usize,
-}
-
-impl Output {
-    pub fn new( machine: &IntcodeMachine) -> Self {
-        let params = machine.read_slice_from_ptr(2);
-        Self {
-            position: params[1] as usize,
-        }
-    }
-}
-
-impl IntcodeInstruction for Output {
-    fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep> {
-        let value = machine.read_memory(self.position);
-        machine.output(value);
-        Ok(NextStep::Jump(2))
-    }
+pub enum NextStep {
+    Jump(usize),
+    Halt,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -307,5 +260,9 @@ mod tests {
         assert_eq!(test_program(&[1002,4,3,4,33]), vec![1002,4,3,4,99]);
         assert_eq!(test_program(&[1101,100,-1,4,0]), vec![1101,100,-1,4,99]);
     }
-    
+
+    #[test]
+    fn day5_part1() {
+
+    }
 }
