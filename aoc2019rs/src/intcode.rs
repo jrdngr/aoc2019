@@ -45,6 +45,11 @@ impl IntcodeMachine {
         self.memory[position] = value;
     }
 
+    #[cfg(test)]
+    pub fn memory_as_slice(&self) -> &[i64] {
+        &self.memory
+    }
+
     pub fn get_value(&self, mode: Mode, value: i64) -> i64 {
         match mode {
             Mode::Position => self.read_memory(value as usize),
@@ -108,11 +113,12 @@ impl MachineOperation {
     }
 }
 
-pub trait IntcodeInstruction {
+pub trait IntcodeInstruction: std::fmt::Debug {
     fn operate(&self, machine: &mut IntcodeMachine) -> Result<()>;
     fn length(&self) -> usize;
 }
 
+#[derive(Debug)]
 pub struct Halt;
 
 impl IntcodeInstruction for Halt {
@@ -122,6 +128,7 @@ impl IntcodeInstruction for Halt {
     fn length(&self) -> usize { 1 }
 }
 
+#[derive(Debug)]
 pub struct Add {
     x: i64,
     y: i64,
@@ -134,7 +141,7 @@ impl Add {
         Self {
             x: machine.get_value(op.param1_mode, params[1]),
             y: machine.get_value(op.param2_mode, params[2]),
-            position: machine.get_value(op.param3_mode, params[3]) as usize,
+            position: params[3] as usize,
         }
     }
 }
@@ -148,6 +155,7 @@ impl IntcodeInstruction for Add {
     fn length(&self) -> usize { 4 }
 }
 
+#[derive(Debug)]
 pub struct Multiply {
     x: i64,
     y: i64,
@@ -160,7 +168,7 @@ impl Multiply {
         Self {
             x: machine.get_value(op.param1_mode, params[1]),
             y: machine.get_value(op.param2_mode, params[2]),
-            position: machine.get_value(op.param3_mode, params[3]) as usize,
+            position: params[3] as usize,
         }
     }
 }
@@ -174,6 +182,7 @@ impl IntcodeInstruction for Multiply {
     fn length(&self) -> usize { 4 }
 }
 
+#[derive(Debug)]
 pub struct Input {
     position: usize,
 }
@@ -197,6 +206,7 @@ impl IntcodeInstruction for Input {
     fn length(&self) -> usize { 2 }
 }
 
+#[derive(Debug)]
 pub struct Output {
     position: usize,
 }
@@ -235,5 +245,25 @@ impl TryFrom<usize> for Mode {
             1 => Mode::Immediate,
             _ => bail!("Invalid mode code: {}", value),
         })
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_input(input: &[i64]) -> Vec<i64> {
+        let mut machine = IntcodeMachine::new(&input);
+        machine.run().unwrap();
+        machine.memory_as_slice().to_vec()
+    }
+
+    #[test]
+    fn day2_tests() {
+        assert_eq!(test_input(&[1,0,0,0,99]), vec![2,0,0,0,99]);
+        assert_eq!(test_input(&[2,3,0,3,99]), vec![2,3,0,6,99]);
+        assert_eq!(test_input(&[2,4,4,5,99,0]), vec![2,4,4,5,99,9801]);
+        assert_eq!(test_input(&[1,1,1,4,99,5,6,0,99]), vec![30,1,1,4,2,5,6,0,99]);
     }
 }
