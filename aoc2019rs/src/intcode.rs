@@ -45,6 +45,7 @@ impl IntcodeMachine {
         self.memory[position] = value;
     }
 
+    #[cfg(test)]
     pub fn memory_as_slice(&self) -> &[i64] {
         &self.memory
     }
