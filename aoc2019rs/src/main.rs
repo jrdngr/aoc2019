@@ -15,6 +15,7 @@ fn main() -> Result<()> {
         "3" => solutions::day3::run()?,
         "4" => solutions::day4::run()?,
         "5" => solutions::day5::run()?,
+        "6" => solutions::day6::run()?,
         _   => bail!("Invalid day number: {}", day_num),
     };
 
