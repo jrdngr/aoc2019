@@ -19,7 +19,8 @@ impl IntcodeMachine {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        while let Ok(instruction) = self.read_instruction() {
+        loop {
+            let instruction = self.read_instruction()?;
             match instruction.operate(self)? {
                 NextStep::Jump(steps) => self.instruction_pointer += steps,
                 NextStep::Halt => break,
@@ -65,7 +66,7 @@ impl IntcodeMachine {
     }
 
     pub fn output(&self, value: i64) {
-        println!("{}", value);
+        println!("Output: {}", value);
     }
 
     fn read_instruction(&self) -> Result<Box<dyn IntcodeInstruction>> {
@@ -79,8 +80,8 @@ impl IntcodeMachine {
             Ok(match operation.opcode {
                 1 => Box::new(Add::new(operation, self)),
                 2 => Box::new(Multiply::new(operation, self)),
-                3 => Box::new(Input::new(operation, self)),
-                4 => Box::new(Output::new(operation, self)),
+                3 => Box::new(Input::new(self)),
+                4 => Box::new(Output::new(self)),
                 99 => Box::new(Halt),
                 _ => bail!("Invalid instruction: {}", mem[ptr]),
             })
@@ -88,6 +89,7 @@ impl IntcodeMachine {
     }
 }
 
+#[derive(Debug)]
 pub struct MachineOperation {
     pub opcode: usize,
     pub param1_mode: Mode,
@@ -189,10 +191,10 @@ pub struct Input {
 }
 
 impl Input {
-    pub fn new(op: MachineOperation, machine: &IntcodeMachine) -> Self {
+    pub fn new(machine: &IntcodeMachine) -> Self {
         let params = machine.read_slice_from_ptr(2);
         Self {
-            position: machine.get_value(op.param1_mode, params[1]) as usize,
+            position: params[1] as usize,
         }
     }
 }
@@ -211,10 +213,10 @@ pub struct Output {
 }
 
 impl Output {
-    pub fn new(op: MachineOperation, machine: &IntcodeMachine) -> Self {
+    pub fn new( machine: &IntcodeMachine) -> Self {
         let params = machine.read_slice_from_ptr(2);
         Self {
-            position: machine.get_value(op.param1_mode, params[1]) as usize,
+            position: params[1] as usize,
         }
     }
 }
