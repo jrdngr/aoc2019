@@ -20,8 +20,10 @@ impl IntcodeMachine {
 
     pub fn run(&mut self) -> Result<()> {
         while let Ok(instruction) = self.read_instruction() {
-            instruction.operate(self)?;
-            self.instruction_pointer += instruction.length();
+            match instruction.operate(self)? {
+                NextStep::Jump(steps) => self.instruction_pointer += steps,
+                NextStep::Halt => break,
+            }
         }
 
         Ok(())
@@ -113,19 +115,22 @@ impl MachineOperation {
     }
 }
 
+pub enum NextStep {
+    Jump(usize),
+    Halt,
+}
+
 pub trait IntcodeInstruction: std::fmt::Debug {
-    fn operate(&self, machine: &mut IntcodeMachine) -> Result<()>;
-    fn length(&self) -> usize;
+    fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep>;
 }
 
 #[derive(Debug)]
 pub struct Halt;
 
 impl IntcodeInstruction for Halt {
-    fn operate(&self, _: &mut IntcodeMachine)  -> Result<()> { 
-        Ok(())
+    fn operate(&self, _: &mut IntcodeMachine)  -> Result<NextStep> { 
+        Ok(NextStep::Halt)
     }
-    fn length(&self) -> usize { 1 }
 }
 
 #[derive(Debug)]
@@ -147,12 +152,10 @@ impl Add {
 }
 
 impl IntcodeInstruction for Add {
-    fn operate(&self, machine: &mut IntcodeMachine) -> Result<()> {
+    fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep> {
         machine.write_memory(self.position, self.x + self.y);
-        Ok(())
+        Ok(NextStep::Jump(4))
     }
-
-    fn length(&self) -> usize { 4 }
 }
 
 #[derive(Debug)]
@@ -174,12 +177,10 @@ impl Multiply {
 }
 
 impl IntcodeInstruction for Multiply {
-    fn operate(&self, machine: &mut IntcodeMachine) -> Result<()> {
+    fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep> {
         machine.write_memory(self.position, self.x * self.y);
-        Ok(())
+        Ok(NextStep::Jump(4))
     }
-
-    fn length(&self) -> usize { 4 }
 }
 
 #[derive(Debug)]
@@ -197,13 +198,11 @@ impl Input {
 }
 
 impl IntcodeInstruction for Input {
-    fn operate(&self, machine: &mut IntcodeMachine) -> Result<()> {
+    fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep> {
         let input = machine.input()?;
         machine.write_memory(self.position, input);
-        Ok(())
+        Ok(NextStep::Jump(2))
     }
-    
-    fn length(&self) -> usize { 2 }
 }
 
 #[derive(Debug)]
@@ -221,13 +220,11 @@ impl Output {
 }
 
 impl IntcodeInstruction for Output {
-    fn operate(&self, machine: &mut IntcodeMachine) -> Result<()> {
+    fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep> {
         let value = machine.read_memory(self.position);
         machine.output(value);
-        Ok(())
+        Ok(NextStep::Jump(2))
     }
-
-    fn length(&self) -> usize { 2 }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -270,11 +267,37 @@ mod tests {
 
     #[test]
     fn day2_part1() {
-        let program = utils::read_input_list_as::<i64>(2, b',').unwrap();
-        let mut machine = IntcodeMachine::new(&program);
-        machine.write_memory(1, 12);
-        machine.write_memory(2, 2);
-        machine.run().unwrap();
-        assert_eq!(machine.read_memory(0), 7594646);
+        let input = day2_input();
+        assert_eq!(run_day2_test(&input, 12, 2).unwrap(), 7594646);
     }
+
+    #[test]
+    fn day2_part2() {
+        let input = day2_input();
+        for noun in 0..=99 {
+            for verb in 0..=99 {
+                let result = run_day2_test(&input, noun, verb).unwrap();
+                if result == 19690720 {
+                    return assert_eq!(100 * noun + verb, 3376);
+                }
+                
+            }
+        }
+
+        assert!(false)
+    }
+
+    fn day2_input() -> Vec<i64> {
+        utils::read_input_list_as::<i64>(2, b',').unwrap()
+    }
+
+    fn run_day2_test(program: &[i64], noun: i64, verb: i64) -> Result<i64> {
+        let mut machine = IntcodeMachine::new(program);
+        machine.write_memory(1, noun);
+        machine.write_memory(2, verb);
+        machine.run()?;
+    
+        Ok(machine.read_memory(0))
+    }
+    
 }
