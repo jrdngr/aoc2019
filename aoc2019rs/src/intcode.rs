@@ -2,11 +2,11 @@ use anyhow::{bail, Result};
 
 pub struct IntcodeMachine {
     instruction_pointer: usize,
-    memory: Vec<usize>,
+    memory: Vec<i64>,
 }
 
 impl IntcodeMachine {
-    pub fn new(machine_code: &[usize]) -> Self {
+    pub fn new(machine_code: &[i64]) -> Self {
         Self {
             instruction_pointer: 0,
             memory: machine_code.to_vec(),
@@ -18,8 +18,22 @@ impl IntcodeMachine {
             use IntcodeInstruction::*;
             
             match instruction {
-                Add(x, y, position) => self.memory[position] = x + y,
-                Mul(x, y, position) => self.memory[position] = x * y,
+                Add(x, y, position) => {
+                    self.memory[position as usize] = x + y;
+                    self.instruction_pointer += 4;
+                },
+                Multiply(x, y, position) => {
+                    self.memory[position as usize] = x * y;
+                    self.instruction_pointer += 4;
+                }
+                Input(position) => {
+                    self.memory[position as usize] = self.input();
+                    self.instruction_pointer += 2;
+                },
+                Output(position) => {
+                    self.output(self.memory[position as usize]);
+                    self.instruction_pointer += 2;
+                },
                 Halt => break,
             }
             
@@ -29,12 +43,12 @@ impl IntcodeMachine {
         Ok(())
     }
 
-    pub fn read_memory(&self, position: usize) -> usize {
-        self.memory[position]
+    pub fn read_memory(&self, position: i64) -> i64 {
+        self.memory[position as usize]
     }
 
-    pub fn write_memory(&mut self, position: usize, value: usize) {
-        self.memory[position] = value;
+    pub fn write_memory(&mut self, position: i64, value: i64) {
+        self.memory[position as usize] = value;
     }
 
     fn read_instruction(&self) -> Result<IntcodeInstruction> {
@@ -47,18 +61,29 @@ impl IntcodeMachine {
             let ptr = self.instruction_pointer;
             
             Ok(match mem[ptr] {
-                1 => Add(mem[mem[ptr + 1]], mem[mem[ptr + 2]], mem[ptr + 3]),
-                2 => Mul(mem[mem[ptr + 1]], mem[mem[ptr + 2]], mem[ptr + 3]),
+                1 => Add(mem[mem[ptr + 1] as usize], mem[mem[ptr + 2] as usize], mem[ptr + 3]),
+                2 => Multiply(mem[mem[ptr + 1] as usize], mem[mem[ptr + 2] as usize], mem[ptr + 3]),
+                3 => Input(mem[ptr + 1]),
+                4 => Output(mem[ptr + 1]),
                 99 => Halt,
                 _ => bail!("Invalid instruction: {}", mem[ptr]),
             })
         }
-        
+    }
+
+    fn input(&self) -> i64 {
+        0
+    }
+
+    fn output(&self, value: i64) {
+        println!("{}", value);
     }
 }
 
 pub enum IntcodeInstruction {
-    Add(usize, usize, usize),
-    Mul(usize, usize, usize),
+    Add(i64, i64, i64),
+    Multiply(i64, i64, i64),
+    Input(i64),
+    Output(i64),
     Halt,
 }
