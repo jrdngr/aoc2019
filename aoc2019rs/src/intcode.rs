@@ -8,14 +8,22 @@ use crate::utils;
 pub struct IntcodeMachine {
     instruction_pointer: usize,
     memory: Vec<i64>,
+    input: Box<dyn IntcodeInput>,
+    output: Box<dyn IntcodeOutput>,
 }
 
 impl IntcodeMachine {
-    pub fn new(machine_code: &[i64]) -> Self {
+    pub fn new(machine_code: &[i64], input: Box<dyn IntcodeInput>, output: Box<dyn IntcodeOutput>) -> Self {
         Self {
             instruction_pointer: 0,
             memory: machine_code.to_vec(),
+            input,
+            output,
         }
+    }
+
+    pub fn new_console_machine(machine_code: &[i64]) -> Self {
+        Self::new(machine_code, Box::new(IntcodeConsoleInput), Box::new(IntcodeConsoleOutput))
     }
 
     pub fn run(&mut self) -> Result<()> {
@@ -61,12 +69,11 @@ impl IntcodeMachine {
     }
 
     pub fn input(&self) -> Result<i64> {
-        let input = utils::read_input()?;
-        Ok(i64::from_str(&input)?)
+        self.input.process()
     }
 
     pub fn output(&self, value: i64) {
-        println!("Output: {}", value);
+        self.output.process(value)
     }
 
     fn read_instruction(&self) -> Result<IntcodeInstruction> {
@@ -200,6 +207,30 @@ impl TryFrom<usize> for Mode {
     }
 }
 
+pub trait IntcodeInput {
+    fn process(&self) -> Result<i64>;
+}
+
+pub trait IntcodeOutput {
+    fn process(&self, value: i64);
+}
+
+pub struct IntcodeConsoleInput;
+
+impl IntcodeInput for IntcodeConsoleInput {
+    fn process(&self) -> Result<i64> {
+        let input = utils::read_input()?;
+        Ok(i64::from_str(&input)?)
+    }
+}
+
+pub struct IntcodeConsoleOutput;
+
+impl IntcodeOutput for IntcodeConsoleOutput {
+    fn process(&self, value: i64) {
+        println!("Output: {}", value);
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -207,7 +238,7 @@ mod tests {
     use crate::utils;
 
     fn test_program(program: &[i64]) -> Vec<i64> {
-        let mut machine = IntcodeMachine::new(&program);
+        let mut machine = IntcodeMachine::new_console_machine(&program);
         machine.run().unwrap();
         machine.memory_as_slice().to_vec()
     }
@@ -247,7 +278,7 @@ mod tests {
     }
 
     fn run_day2_test(program: &[i64], noun: i64, verb: i64) -> Result<i64> {
-        let mut machine = IntcodeMachine::new(program);
+        let mut machine = IntcodeMachine::new_console_machine(program);
         machine.write_memory(1, noun);
         machine.write_memory(2, verb);
         machine.run()?;

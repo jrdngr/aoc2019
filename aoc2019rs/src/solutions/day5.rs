@@ -9,7 +9,7 @@ use crate::intcode::IntcodeMachine;
 pub fn run() -> Result<String> {
     let program = utils::read_input_list_as::<i64>(5, b',')?;
 
-    let mut machine = IntcodeMachine::new(&program);
+    let mut machine = IntcodeMachine::new_console_machine(&program);
     machine.run()?;
 
     Ok(String::from("See last output"))

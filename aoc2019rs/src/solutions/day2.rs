@@ -20,7 +20,7 @@ pub fn run() -> Result<String> {
 }
 
 fn run_test(program: &[i64], noun: i64, verb: i64) -> Result<i64> {
-    let mut machine = IntcodeMachine::new(&program);
+    let mut machine = IntcodeMachine::new_console_machine(&program);
     machine.write_memory(1, noun);
     machine.write_memory(2, verb);
     machine.run()?;
