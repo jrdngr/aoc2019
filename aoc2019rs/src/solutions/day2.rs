@@ -1,10 +1,10 @@
 use anyhow::{bail, Result};
 
-use crate::utils;
+use crate::utils::input;
 use crate::intcode::IntcodeMachine;
 
 pub fn run() -> Result<String> {
-    let program = utils::read_input_list_as::<i64>(2, b',')?;
+    let program = input::read_input_list_as::<i64>(2, b',')?;
     
     for noun in 0..=99 {
         for verb in 0..=99 {

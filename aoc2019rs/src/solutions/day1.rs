@@ -1,10 +1,10 @@
 use anyhow::Result;
 
 
-use crate::utils;
+use crate::utils::input;
 
 pub fn run() -> Result<String> {
-    let input = utils::read_input_lines_as::<i64>(1)?;
+    let input = input::read_input_lines_as::<i64>(1)?;
 
     let result = input.into_iter()
         .map(fuel_by_weight)

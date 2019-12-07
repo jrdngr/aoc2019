@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use std::collections::HashMap;
 
-use crate::utils;
+use crate::utils::conversion;
 
 // Part 1: 511
 // Part 2: 316
@@ -19,7 +19,7 @@ pub fn run() -> Result<String> {
 }
 
 fn digits_increasing(value: &usize) -> bool {
-    let digits = utils::usize_into_digits(value);
+    let digits = conversion::usize_into_digits(value);
 
     for i in 0..digits.len()-1 {
         if digits[i] > digits[i+1] {
@@ -43,7 +43,7 @@ fn digits_increasing(value: &usize) -> bool {
 // }
 
 fn contains_strict_double(value: &usize) -> bool {
-    let digits = utils::usize_into_digits(value);
+    let digits = conversion::usize_into_digits(value);
 
     let mut digit_counts = HashMap::new();
 

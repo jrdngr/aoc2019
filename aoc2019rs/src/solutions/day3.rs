@@ -4,13 +4,13 @@ use std::str::FromStr;
 use std::collections::HashSet;
 use std::ops::Add;
 
-use crate::utils;
+use crate::utils::input;
 
 // Part 1: 266
 // Part 2: 
 
 pub fn run() -> Result<String> {
-    let input = utils::read_input_lines(3)?;
+    let input = input::read_input_lines(3)?;
     let wire1: Vec<WireSegment> = input[0].split(',').flat_map(WireSegment::from_str).collect();
     let wire2: Vec<WireSegment> = input[1].split(',').flat_map(WireSegment::from_str).collect();
 

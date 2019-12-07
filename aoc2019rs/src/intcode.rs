@@ -3,7 +3,7 @@ use anyhow::{bail, Result};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
-use crate::utils;
+use crate::utils::{conversion, input};
 
 pub struct IntcodeMachine {
     instruction_pointer: usize,
@@ -104,7 +104,7 @@ pub struct MachineOperation {
 
 impl MachineOperation {
     pub fn new(instruction: i64) -> Result<Self> {
-        let digits: Vec<usize> = utils::i64_into_digits(&instruction)
+        let digits: Vec<usize> = conversion::i64_into_digits(&instruction)
         .into_iter()
         .rev()
         .collect();
@@ -294,7 +294,7 @@ pub struct IntcodeConsoleInput;
 
 impl IntcodeInput for IntcodeConsoleInput {
     fn process(&mut self) -> Result<i64> {
-        let input = utils::read_input()?;
+        let input = input::read_input()?;
         Ok(i64::from_str(&input)?)
     }
 }
@@ -363,7 +363,6 @@ impl IntcodeOutput for IntcodeHistoryOutput {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils;
 
     fn test_program(program: &[i64]) -> Vec<i64> {
         let mut machine = IntcodeMachine::new_console_machine(&program);
@@ -402,7 +401,7 @@ mod tests {
     }
 
     fn day2_input() -> Vec<i64> {
-        utils::read_input_list_as::<i64>(2, b',').unwrap()
+        input::read_input_list_as::<i64>(2, b',').unwrap()
     }
 
     fn run_day2_test(program: &[i64], noun: i64, verb: i64) -> Result<i64> {
@@ -428,7 +427,7 @@ mod tests {
     }
 
     fn day5_input() -> Vec<i64> {
-        utils::read_input_list_as::<i64>(5, b',').unwrap()
+        input::read_input_list_as::<i64>(5, b',').unwrap()
     }
 
     #[test]
