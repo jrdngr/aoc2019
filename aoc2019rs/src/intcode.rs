@@ -160,7 +160,7 @@ impl IntcodeInstruction {
                 Input{ position: params[1] as usize }
             },
             4 =>  {
-                let params = dbg!(machine.read_slice_from_ptr(2));
+                let params = machine.read_slice_from_ptr(2);
                 Output{ 
                     value: machine.get_value(operation.param1_mode, params[1])
                 }
