@@ -35,8 +35,8 @@ impl IntcodeMachine {
         loop {
             let instruction = self.read_instruction()?;
             match instruction.operate(self)? {
-                NextStep::Jump(steps) => self.instruction_pointer += steps,
-                NextStep::Set(position) => self.instruction_pointer = position,
+                NextStep::Skip(steps) => self.instruction_pointer += steps,
+                NextStep::Jump(position) => self.instruction_pointer = position,
                 NextStep::Halt => break,
             }
         }
@@ -127,7 +127,7 @@ pub enum IntcodeInstruction {
     Add{x: i64, y: i64, position: usize},
     Multiply{x: i64, y: i64, position: usize},
     Input{position: usize},
-    Output{position: usize},
+    Output{value: i64},
     JumpIfTrue{should_jump: bool, position: usize},
     JumpIfFalse{should_jump: bool, position: usize},
     IsLessThan{x: i64, y: i64, position: usize},
@@ -160,18 +160,26 @@ impl IntcodeInstruction {
                 Input{ position: params[1] as usize }
             },
             4 =>  {
-                let params = machine.read_slice_from_ptr(2);
-                Output{ position: params[1] as usize }
+                let params = dbg!(machine.read_slice_from_ptr(2));
+                Output{ 
+                    value: machine.get_value(operation.param1_mode, params[1])
+                }
             },
             5 => {
                 let params = machine.read_slice_from_ptr(3);
                 let test_value = machine.get_value(operation.param1_mode, params[1]);
-                JumpIfTrue{ should_jump: test_value > 0, position: params[2] as usize }
+                JumpIfTrue { 
+                    should_jump: test_value > 0, 
+                    position: machine.get_value(operation.param2_mode, params[2]) as usize,
+                }
             },
             6 => {
                 let params = machine.read_slice_from_ptr(3);
                 let test_value = machine.get_value(operation.param1_mode, params[1]);
-                JumpIfTrue{ should_jump: test_value == 0, position: params[2] as usize }
+                JumpIfFalse { 
+                    should_jump: test_value == 0, 
+                    position: machine.get_value(operation.param2_mode, params[2]) as usize,
+                }
             },
             7 => {
                 let params = machine.read_slice_from_ptr(4);
@@ -199,34 +207,33 @@ impl IntcodeInstruction {
         Ok(match self {
             Add{x, y, position} => {
                 machine.write_memory(*position, x + y);
-                NextStep::Jump(4)
+                NextStep::Skip(4)
             },
             Multiply{x, y, position} => {
                 machine.write_memory(*position, x * y);
-                NextStep::Jump(4)
+                NextStep::Skip(4)
             },
             Input{position} => {
                 let input = machine.input()?;
                 machine.write_memory(*position, input);
-                NextStep::Jump(2)
+                NextStep::Skip(2)
             },
-            Output{position} => {
-                let value = machine.read_memory(*position);
-                machine.output(value);
-                NextStep::Jump(2)
+            Output{value} => {
+                machine.output(*value);
+                NextStep::Skip(2)
             },
             JumpIfTrue{should_jump, position} => {
                 if *should_jump {
-                    NextStep::Set(*position)
+                    NextStep::Jump(*position)
                 } else {
-                    NextStep::Jump(3)
+                    NextStep::Skip(3)
                 }
             },
             JumpIfFalse{should_jump, position} => {
                 if *should_jump {
-                    NextStep::Set(*position)
+                    NextStep::Jump(*position)
                 } else {
-                    NextStep::Jump(3)
+                    NextStep::Skip(3)
                 }
             },
             IsLessThan{x, y, position} => {
@@ -235,7 +242,7 @@ impl IntcodeInstruction {
                 } else {
                     machine.write_memory(*position, 0);
                 }
-                NextStep::Jump(4)
+                NextStep::Skip(4)
             },
             IsEquals{x, y, position} => {
                 if x == y {
@@ -243,7 +250,7 @@ impl IntcodeInstruction {
                 } else {
                     machine.write_memory(*position, 0);
                 }
-                NextStep::Jump(4)
+                NextStep::Skip(4)
             },
             Halt => NextStep::Halt,
         })
@@ -251,8 +258,8 @@ impl IntcodeInstruction {
 }
 
 pub enum NextStep {
+    Skip(usize),
     Jump(usize),
-    Set(usize),
     Halt,
 }
 
@@ -415,16 +422,71 @@ mod tests {
 
     #[test]
     fn day5_part1() {
-        let input = day5_input();
-        let input_handler = Box::new(IntcodePresetInput::new(&[1]));
-        let output_handler = Box::new(IntcodeHistoryOutput::new());
-        let mut machine = IntcodeMachine::new(&input, input_handler, output_handler);
-        machine.run().unwrap();
-        let (_, _, output_handler) = machine.teardown();
-        assert_eq!(output_handler.history().iter().last().unwrap(), "9025675");
+        let program = day5_input();
+        let result = test_and_get_last_output(&program, &[1]);
+        assert_eq!(result, "9025675");
     }
 
     fn day5_input() -> Vec<i64> {
         utils::read_input_list_as::<i64>(5, b',').unwrap()
+    }
+
+    #[test]
+    fn day5_comparison_tests() {
+        assert_eq!(test_and_get_last_output(&[3,9,8,9,10,9,4,9,99,-1,8], &[7]), "0");
+        assert_eq!(test_and_get_last_output(&[3,9,8,9,10,9,4,9,99,-1,8], &[8]), "1");
+        
+        assert_eq!(test_and_get_last_output(&[3,9,7,9,10,9,4,9,99,-1,8], &[7]), "1");
+        assert_eq!(test_and_get_last_output(&[3,9,7,9,10,9,4,9,99,-1,8], &[9]), "0");
+
+        assert_eq!(test_and_get_last_output(&[3,3,1108,-1,8,3,4,3,99], &[7]), "0");
+        assert_eq!(test_and_get_last_output(&[3,3,1108,-1,8,3,4,3,99], &[8]), "1");
+
+        assert_eq!(test_and_get_last_output(&[3,3,1107,-1,8,3,4,3,99], &[7]), "1");
+        assert_eq!(test_and_get_last_output(&[3,3,1107,-1,8,3,4,3,99], &[9]), "0");
+    }
+
+    #[test]
+    fn day5_jump_position_tests() {
+        assert_eq!(test_and_get_last_output(&[3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9], &[0]), "0");
+        assert_eq!(test_and_get_last_output(&[3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9], &[1]), "1");
+    }
+
+    #[test]
+    fn day5_jump_immediate_tests() {
+        assert_eq!(test_and_get_last_output(&[3,3,1105,-1,9,1101,0,0,12,4,12,99,1], &[0]), "0");
+        assert_eq!(test_and_get_last_output(&[3,3,1105,-1,9,1101,0,0,12,4,12,99,1], &[1]), "1");
+    } 
+
+    #[test]
+    fn day5_complex_test() {
+        assert_eq!(test_and_get_last_output(
+            &[3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,
+              1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
+              999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99], &[7]), "999");
+
+        assert_eq!(test_and_get_last_output(
+            &[3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,
+              1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
+              999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99], &[8]), "1000");
+
+        assert_eq!(test_and_get_last_output(
+            &[3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,
+              1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
+              999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99], &[9]), "1001");
+        
+    }
+
+    fn test_with_inputs(program: &[i64], inputs: &[i64]) -> Vec<String> {
+        let input_handler = Box::new(IntcodePresetInput::new(inputs));
+        let output_handler = Box::new(IntcodeHistoryOutput::new());
+        let mut machine = IntcodeMachine::new(&program, input_handler, output_handler);
+        machine.run().unwrap();
+        let (_, _, output_handler) = machine.teardown();
+        output_handler.history().to_vec()
+    }
+
+    fn test_and_get_last_output(program: &[i64], inputs: &[i64]) -> String {
+        test_with_inputs(program, inputs).into_iter().last().unwrap()
     }
 }
