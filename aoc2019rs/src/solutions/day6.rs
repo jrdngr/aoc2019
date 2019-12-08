@@ -24,7 +24,7 @@ fn total_orbits(orbits: &Graph<&str>) -> usize {
 }
 
 fn distance_between(first: &str, second: &str, orbits: &Graph<&str>) -> usize {
-    orbits.path_bfs(first, second).expect(&format!("{} -> {}", first, second)).len() - 1
+    orbits.path_between(first, second).expect(&format!("{} -> {}", first, second)).len() - 1
 }
 
 fn parse_orbit_list(orbits: &[String]) -> Graph<&str> {
