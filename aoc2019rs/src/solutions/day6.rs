@@ -1,11 +1,8 @@
 use anyhow::Result;
 use nom::IResult;
 
-use std::collections::HashMap;
-
 use crate::utils::input;
-
-type OrbitMap<'a> = HashMap<&'a str, &'a str>;
+use crate::utils::graph::Graph;
 
 // Part 1: 224901
 // Part 2: 
@@ -20,37 +17,40 @@ pub fn run() -> Result<String> {
     Ok(format!("{}", total_orbits))
 }
 
-fn distance_between(first: &str, second: &str, orbits: &OrbitMap) {
+fn distance_between(first: &str, second: &str, orbits: &Graph<&str>) {
     let you_distance = distance_from_com(first, orbits);
     let san_distance = distance_from_com(second, orbits);
 
 
 }
 
-fn find_least_common_ancestor<'a>(first: &'a str, second: &'a str, orbits: &OrbitMap) -> &'a str {
+fn find_least_common_ancestor<'a>(first: &'a str, second: &'a str, orbits: &Graph<&str>) -> &'a str {
     ""
 }
 
-fn total_orbits(orbits: &OrbitMap) -> usize {
-    orbits.iter()
-        .map(|(object, _)| distance_from_com(object, orbits))
+fn total_orbits(orbits: &Graph<&str>) -> usize {
+    orbits.nodes().iter()
+        .map(|object| distance_from_com(object, orbits))
         .sum()
 }
 
-fn distance_from_com(object: &str, orbits: &OrbitMap) -> usize {
-    let parent = orbits.get(object).expect(&format!("Object {} not found", object));
-    if *parent == "COM" {
-        1
-    } else {
-        1 + distance_from_com(parent, orbits)
-    }
+fn distance_from_com(object: &str, orbits: &Graph<&str>) -> usize {
+    orbits.path_bfs(&object, &"COM").expect("Error").len() - 1
 }
 
-fn parse_orbit_list(orbits: &[String]) -> OrbitMap {
+fn parse_orbit_list(orbits: &[String]) -> Graph<&str> {
+    let mut graph = Graph::new();
+
     orbits.into_iter()
-          .flat_map(|orbit| parse_orbit(&orbit))
-          .map(|(_, parsed_orbit)| (parsed_orbit.1, parsed_orbit.0))
-          .collect()
+            .flat_map(|orbit| parse_orbit(&orbit))
+            .map(|(_, parsed_orbit)| (parsed_orbit.1, parsed_orbit.0))
+            .for_each(|(from, to)| {
+                graph.add_node(from);
+                graph.add_node(to);
+                graph.add_edge(&from, &to);
+            });
+
+    graph
 }
 
 fn parse_orbit(orbit_string: &str) -> IResult<&str, (&str, &str)> {
@@ -71,16 +71,6 @@ mod tests {
     fn test_parser() {
         assert_eq!(parse_orbit("COM)B").unwrap().1, ("COM", "B"));
         assert_eq!(parse_orbit("B)C").unwrap().1, ("B", "C"));
-    }
-
-    #[test]
-    fn test_parse_list() {
-        let input = example();
-        let orbits = parse_orbit_list(&input);
-        
-        assert!(orbits["B"] == "COM");
-        assert!(orbits["C"] == "B");
-        assert!(orbits["D"] == "C");
     }
 
     #[test]

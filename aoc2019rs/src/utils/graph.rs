@@ -1,14 +1,12 @@
-use anyhow::{bail, Result};
-
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::cmp::Eq;
 
-pub struct Graph<'a, T> {
-    adjacency_map: HashMap<T, Vec<&'a T>>,
+pub struct Graph<T> {
+    adjacency_map: HashMap<T, Vec<T>>,
 }
 
-impl <'a, T> Default for Graph<'a, T> 
+impl <T> Default for Graph<T> 
 where T: Hash + Eq,
 {
     fn default() -> Self {
@@ -16,8 +14,8 @@ where T: Hash + Eq,
     }
 }
 
-impl <'a, T> Graph<'a, T>
-where T: Hash + Eq 
+impl <T> Graph<T>
+where T: Hash + Eq + Copy
 {
     /*
      *
@@ -32,8 +30,6 @@ where T: Hash + Eq
     pub fn add_node(&mut self, value: T) {
         if !self.adjacency_map.contains_key(&value) {
             self.add_node_with_adjacency_list(value, Vec::new());
-        } else {
-            panic!("Node is already present")
         }
     }
 
@@ -43,21 +39,25 @@ where T: Hash + Eq
         nodes.into_iter().for_each(|node| self.add_node(node))
     }
 
-    pub fn add_edge(&mut self, from: &T, to: &'a T) {
+    pub fn add_edge(&mut self, from: T, to: T) {
         self.adjacency_map
-            .get_mut(from)
+            .get_mut(&from)
             .expect("from node not found")
             .push(to);
     }
 
     pub fn add_edges<I>(&mut self, edges: I) 
-    where I: IntoIterator<Item = (&'a T, &'a T)>
+    where I: IntoIterator<Item = (T, T)>
     {
         edges.into_iter().for_each(|(from, to)| self.add_edge(from, to))
     }
 
-    pub fn add_node_with_adjacency_list(&mut self, node: T, list: Vec<&'a T>) {
+    pub fn add_node_with_adjacency_list(&mut self, node: T, list: Vec<T>) {
         self.adjacency_map.insert(node, list);
+    }
+
+    pub fn nodes(&self) -> Vec<&T> {
+        self.adjacency_map.keys().collect()
     }
 
     /*
@@ -66,7 +66,7 @@ where T: Hash + Eq
      *
      */
 
-    pub fn bfs(&self, start: &T, target: &'a T) -> Option<&'a T> {
+    pub fn bfs(&self, start: T, target: T) -> Option<T> {
         use std::collections::VecDeque;
         use std::collections::HashSet;
 
@@ -81,16 +81,16 @@ where T: Hash + Eq
 
             visited.insert(next);
             self.adjacency_map
-                .get(next)
+                .get(&next)
                 .expect("Node not found")
                 .into_iter()
-                .for_each(|item| queue.push_back(item));
+                .for_each(|item| queue.push_back(*item));
         }
 
         None
     }
 
-    pub fn dfs(&self, start: &T, target: &'a T) -> Option<&'a T> {
+    pub fn dfs(&self, start: &T, target: T) -> Option<T> {
         use std::collections::HashSet;
 
         let mut stack = Vec::new();
@@ -98,7 +98,7 @@ where T: Hash + Eq
 
         stack.push(start);
         while let Some(next) = stack.pop() {
-            if next == target {
+            if *next == target {
                 return Some(target)
             }
 
@@ -113,7 +113,7 @@ where T: Hash + Eq
         None
     }
 
-    pub fn path_bfs(&self, start: &'a T, target: &'a T) -> Option<(&'a T, Vec<&'a T>)> {
+    pub fn path_bfs(&self, start: T, target: T) -> Option<Vec<T>> {
         use std::collections::HashSet;
 
         let mut stack = Vec::new();
@@ -123,18 +123,18 @@ where T: Hash + Eq
         while let Some((next, mut path)) = stack.pop() {
             if next == target {
                 path.push(next);
-                return Some((target, path))
+                return Some(path)
             }
 
             visited.insert(next);
             self.adjacency_map
-                .get(next)
+                .get(&next)
                 .expect("Node not found")
                 .into_iter()
                 .for_each(|item| {
                     let mut item_path = path.clone();
                     item_path.push(next);
-                    stack.push((item, item_path));
+                    stack.push((*item, item_path));
                 });
         }
 
@@ -151,17 +151,17 @@ mod tests {
         let mut graph: Graph<i32> = Graph::new();
         graph.add_nodes(vec![1, 2, 3, 4, 5, 6, 7, 8]);
         let edges = vec![
-            (&1, &2),
-            (&2, &3),
-            (&3, &4),
-            (&4, &5),
-            (&5, &6),
-            (&6, &7),
-            (&7, &8),
+            (1, 2),
+            (2, 3),
+            (3, 4),
+            (4, 5),
+            (5, 6),
+            (6, 7),
+            (7, 8),
         ];
         graph.add_edges(edges);
 
-        let path = graph.path_bfs(&3, &6).unwrap().1;
-        assert_eq!(path, vec![&3, &4, &5, &6]);
+        let path = graph.path_bfs(3, 6).unwrap();
+        assert_eq!(path, vec![3, 4, 5, 6]);
     }
 }
