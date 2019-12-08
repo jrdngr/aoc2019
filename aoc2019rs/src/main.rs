@@ -1,6 +1,5 @@
 use anyhow::{anyhow, bail, Result};
 
-mod intcode;
 mod solutions;
 mod utils;
 
