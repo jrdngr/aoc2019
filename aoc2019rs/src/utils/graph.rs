@@ -17,7 +17,7 @@ where T: Hash + Eq,
 }
 
 impl <'a, T> Graph<'a, T>
-where T: Hash + Eq, 
+where T: Hash + Eq 
 {
     /*
      *
@@ -30,7 +30,7 @@ where T: Hash + Eq,
     }
 
     pub fn add_node(&mut self, value: T) {
-        if self.adjacency_map.contains_key(&value) {
+        if !self.adjacency_map.contains_key(&value) {
             self.add_node_with_adjacency_list(value, Vec::new());
         } else {
             panic!("Node is already present")
@@ -120,8 +120,9 @@ where T: Hash + Eq,
         let mut visited = HashSet::new();
 
         stack.push((start, Vec::new()));
-        while let Some((next, path)) = stack.pop() {
+        while let Some((next, mut path)) = stack.pop() {
             if next == target {
+                path.push(next);
                 return Some((target, path))
             }
 
@@ -147,8 +148,20 @@ mod tests {
 
     #[test]
     fn test_path() {
-        let mut graph = Graph::new();
-        graph.add_nodes(&[1, 2, 3, 4, 5, 6, 7, 8]);
+        let mut graph: Graph<i32> = Graph::new();
+        graph.add_nodes(vec![1, 2, 3, 4, 5, 6, 7, 8]);
+        let edges = vec![
+            (&1, &2),
+            (&2, &3),
+            (&3, &4),
+            (&4, &5),
+            (&5, &6),
+            (&6, &7),
+            (&7, &8),
+        ];
+        graph.add_edges(edges);
 
+        let path = graph.path_bfs(&3, &6).unwrap().1;
+        assert_eq!(path, vec![&3, &4, &5, &6]);
     }
 }
