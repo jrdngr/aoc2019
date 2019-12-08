@@ -33,6 +33,7 @@ where T: Hash + Eq + Copy
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_nodes<I>(&mut self, nodes: I) 
     where I: IntoIterator<Item = T>
     {
@@ -46,6 +47,7 @@ where T: Hash + Eq + Copy
             .push(to);
     }
 
+    #[allow(dead_code)]
     pub fn add_edges<I>(&mut self, edges: I) 
     where I: IntoIterator<Item = (T, T)>
     {
@@ -60,12 +62,17 @@ where T: Hash + Eq + Copy
         self.adjacency_map.keys().collect()
     }
 
+    #[allow(dead_code)]
+    pub fn edges(&self, node: T) -> &[T] {
+        &self.adjacency_map[&node]
+    }
+
     /*
      *
      * <-- Algorithms -->
      *
      */
-
+     #[allow(dead_code)]
     pub fn bfs(&self, start: T, target: T) -> Option<T> {
         use std::collections::VecDeque;
         use std::collections::HashSet;
@@ -79,18 +86,21 @@ where T: Hash + Eq + Copy
                 return Some(target)
             }
 
-            visited.insert(next);
-            self.adjacency_map
-                .get(&next)
-                .expect("Node not found")
-                .into_iter()
-                .for_each(|item| queue.push_back(*item));
+            if !visited.contains(&next) {
+                visited.insert(next);
+                self.adjacency_map
+                    .get(&next)
+                    .expect("Node not found")
+                    .into_iter()
+                    .for_each(|item| queue.push_back(*item));
+            }
         }
 
         None
     }
 
-    pub fn dfs(&self, start: &T, target: T) -> Option<T> {
+    #[allow(dead_code)]
+    pub fn dfs(&self, start: T, target: T) -> Option<T> {
         use std::collections::HashSet;
 
         let mut stack = Vec::new();
@@ -98,22 +108,24 @@ where T: Hash + Eq + Copy
 
         stack.push(start);
         while let Some(next) = stack.pop() {
-            if *next == target {
+            if next == target {
                 return Some(target)
             }
 
-            visited.insert(next);
-            self.adjacency_map
-                .get(next)
-                .expect("Node not found")
-                .into_iter()
-                .for_each(|item| stack.push(item));
+            if !visited.contains(&next) {
+                visited.insert(next);
+                self.adjacency_map
+                    .get(&next)
+                    .expect("Node not found")
+                    .into_iter()
+                    .for_each(|item| stack.push(*item));
+            }
         }
 
         None
     }
 
-    pub fn path_bfs(&self, start: T, target: T) -> Option<Vec<T>> {
+    pub fn path_between(&self, start: T, target: T) -> Option<Vec<T>> {
         use std::collections::HashSet;
 
         let mut stack = Vec::new();
@@ -126,16 +138,18 @@ where T: Hash + Eq + Copy
                 return Some(path)
             }
 
-            visited.insert(next);
-            self.adjacency_map
-                .get(&next)
-                .expect("Node not found")
-                .into_iter()
-                .for_each(|item| {
-                    let mut item_path = path.clone();
-                    item_path.push(next);
-                    stack.push((*item, item_path));
-                });
+            if !visited.contains(&next) {
+                visited.insert(next);
+                self.adjacency_map
+                    .get(&next)
+                    .expect("Node not found")
+                    .into_iter()
+                    .for_each(|item| {
+                        let mut item_path = path.clone();
+                        item_path.push(next);
+                        stack.push((*item, item_path));
+                    });
+            }
         }
 
         None
@@ -161,7 +175,7 @@ mod tests {
         ];
         graph.add_edges(edges);
 
-        let path = graph.path_bfs(3, 6).unwrap();
+        let path = graph.path_between(3, 6).unwrap();
         assert_eq!(path, vec![3, 4, 5, 6]);
     }
 }

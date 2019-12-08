@@ -14,28 +14,17 @@ pub fn run() -> Result<String> {
 
     let distance_to_san = distance_between("YOU", "SAN", &orbits);
     
-    Ok(format!("{}", total_orbits))
-}
-
-fn distance_between(first: &str, second: &str, orbits: &Graph<&str>) {
-    let you_distance = distance_from_com(first, orbits);
-    let san_distance = distance_from_com(second, orbits);
-
-
-}
-
-fn find_least_common_ancestor<'a>(first: &'a str, second: &'a str, orbits: &Graph<&str>) -> &'a str {
-    ""
+    Ok(format!("{}, {}", total_orbits, distance_to_san))
 }
 
 fn total_orbits(orbits: &Graph<&str>) -> usize {
     orbits.nodes().iter()
-        .map(|object| distance_from_com(object, orbits))
+        .map(|object| distance_between(object, "COM", orbits))
         .sum()
 }
 
-fn distance_from_com(object: &str, orbits: &Graph<&str>) -> usize {
-    orbits.path_bfs(&object, &"COM").expect("Error").len() - 1
+fn distance_between(first: &str, second: &str, orbits: &Graph<&str>) -> usize {
+    orbits.path_bfs(first, second).expect(&format!("{} -> {}", first, second)).len() - 1
 }
 
 fn parse_orbit_list(orbits: &[String]) -> Graph<&str> {
@@ -48,6 +37,7 @@ fn parse_orbit_list(orbits: &[String]) -> Graph<&str> {
                 graph.add_node(from);
                 graph.add_node(to);
                 graph.add_edge(&from, &to);
+                graph.add_edge(&to, &from);
             });
 
     graph
@@ -78,10 +68,10 @@ mod tests {
         let input = example();
         let orbits = parse_orbit_list(&input);
 
-        assert_eq!(distance_from_com("B", &orbits), 1);
-        assert_eq!(distance_from_com("C", &orbits), 2);
-        assert_eq!(distance_from_com("D", &orbits), 3);
-        assert_eq!(distance_from_com("L", &orbits), 7);
+        assert_eq!(distance_between("B", "COM", &orbits), 1);
+        assert_eq!(distance_between("C", "COM", &orbits), 2);
+        assert_eq!(distance_between("D", "COM", &orbits), 3);
+        assert_eq!(distance_between("L", "COM", &orbits), 7);
     }
 
     #[test]
