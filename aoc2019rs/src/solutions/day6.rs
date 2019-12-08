@@ -14,8 +14,21 @@ pub fn run() -> Result<String> {
     let input = input::read_input_lines(6)?;
     let orbits = parse_orbit_list(&input);
     let total_orbits = total_orbits(&orbits);
+
+    let distance_to_san = distance_between("YOU", "SAN", &orbits);
     
     Ok(format!("{}", total_orbits))
+}
+
+fn distance_between(first: &str, second: &str, orbits: &OrbitMap) {
+    let you_distance = distance_from_com(first, orbits);
+    let san_distance = distance_from_com(second, orbits);
+
+
+}
+
+fn find_least_common_ancestor<'a>(first: &'a str, second: &'a str, orbits: &OrbitMap) -> &'a str {
+    ""
 }
 
 fn total_orbits(orbits: &OrbitMap) -> usize {
