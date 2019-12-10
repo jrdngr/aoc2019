@@ -34,6 +34,10 @@ fn run_day_1_phase_permutation(program: &[i64], phases: &[i64]) -> i64 {
 }
 
 fn run_day_2(program: &[i64]) -> i64 {
+    // Refactor intcode machine into multiple files
+    // Needs to be parallelizable
+    // Block on input
+
     let phase_permutations = math::permutations_cloned::<i64>(&[5, 6, 7, 8, 9]);
     
     phase_permutations.into_iter()
