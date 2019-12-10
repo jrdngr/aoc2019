@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 
 use crate::utils::input;
-use crate::utils::intcode::IntcodeMachine;
+use crate::intcode::IntcodeMachine;
 
 pub fn run() -> Result<String> {
     let program = input::read_input_list_as::<i64>(2, b',')?;

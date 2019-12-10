@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::utils::input;
-use crate::utils::intcode::IntcodeMachine;
+use crate::intcode::IntcodeMachine;
 
 // Part 1: 9025675
 // Part 2: 11981754

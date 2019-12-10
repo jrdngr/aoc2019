@@ -3,7 +3,7 @@ use anyhow::Result;
 use std::str::FromStr;
 
 use crate::utils::{input, math};
-use crate::utils::intcode::IntcodeMachine;
+use crate::intcode::IntcodeMachine;
 
 // Part 1: 43812
 // Part 2: 
