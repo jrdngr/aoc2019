@@ -1,7 +1,13 @@
 use anyhow::{bail, Result};
 
-use super::{IntcodeMachine, NextStep};
+use super::IntcodeMachine;
 use super::operation::MachineOperation;
+
+pub enum NextStep {
+    Skip(usize),
+    Jump(usize),
+    Halt,
+}
 
 #[derive(Debug, PartialEq)]
 pub enum IntcodeInstruction {

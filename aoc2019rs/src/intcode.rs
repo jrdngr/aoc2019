@@ -8,7 +8,7 @@ mod input;
 mod output;
 
 pub use self::operation::{Mode, MachineOperation};
-pub use self::instruction::IntcodeInstruction;
+pub use self::instruction::{IntcodeInstruction, NextStep};
 pub use self::input::{IntcodeInput, IntcodeConsoleInput, IntcodePresetInput};
 pub use self::output::{IntcodeOutput, IntcodeConsoleOutput, IntcodeHistoryOutput};
 
@@ -119,15 +119,6 @@ impl IntcodeMachine {
         Self::process_input(program, inputs).last().cloned()
     }
 }
-
-pub enum NextStep {
-    Skip(usize),
-    Jump(usize),
-    Halt,
-}
-
-
-
 
 
 #[cfg(test)]
