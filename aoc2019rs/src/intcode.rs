@@ -2,10 +2,15 @@
 
 use anyhow::{bail, Result};
 
-use std::convert::TryFrom;
-use std::str::FromStr;
+mod operation;
+mod instruction;
+mod input;
+mod output;
 
-use crate::utils::{conversion, input};
+pub use self::operation::{Mode, MachineOperation};
+pub use self::instruction::IntcodeInstruction;
+pub use self::input::{IntcodeInput, IntcodeConsoleInput, IntcodePresetInput};
+pub use self::output::{IntcodeOutput, IntcodeConsoleOutput, IntcodeHistoryOutput};
 
 pub struct IntcodeMachine {
     instruction_pointer: usize,
@@ -115,267 +120,15 @@ impl IntcodeMachine {
     }
 }
 
-#[derive(Debug)]
-pub struct MachineOperation {
-    pub opcode: usize,
-    pub param1_mode: Mode,
-    pub param2_mode: Mode,
-    pub param3_mode: Mode,
-}
-
-impl MachineOperation {
-    pub fn new(instruction: i64) -> Result<Self> {
-        let digits: Vec<usize> = conversion::i64_into_digits(&instruction)
-        .into_iter()
-        .rev()
-        .collect();
-
-        if digits.is_empty() {
-            bail!("Failed to split digits");
-        }
-
-        Ok(MachineOperation {
-            opcode: digits[0] + 10 * digits.get(1).unwrap_or(&0),
-            param1_mode: Mode::try_from(*digits.get(2).unwrap_or(&0))?,
-            param2_mode: Mode::try_from(*digits.get(3).unwrap_or(&0))?,
-            param3_mode: Mode::try_from(*digits.get(4).unwrap_or(&0))?,
-        })
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum IntcodeInstruction {
-    Add{x: i64, y: i64, position: usize},
-    Multiply{x: i64, y: i64, position: usize},
-    Input{position: usize},
-    Output{value: i64},
-    JumpIfTrue{should_jump: bool, position: usize},
-    JumpIfFalse{should_jump: bool, position: usize},
-    IsLessThan{x: i64, y: i64, position: usize},
-    IsEquals{x: i64, y: i64, position: usize},
-    Halt,
-}
-
-impl IntcodeInstruction {
-    pub fn new(operation: MachineOperation, machine: &IntcodeMachine) -> Result<Self> {
-        use IntcodeInstruction::*;
-        Ok(match operation.opcode {
-            1 => {
-                let params = machine.read_slice_from_ptr(4);
-                Add {
-                    x: machine.get_value(operation.param1_mode, params[1]),
-                    y: machine.get_value(operation.param2_mode, params[2]),
-                    position: params[3] as usize,
-                }
-            },
-            2 =>  {
-                let params = machine.read_slice_from_ptr(4);
-                Multiply{ 
-                    x: machine.get_value(operation.param1_mode, params[1]),
-                    y: machine.get_value(operation.param2_mode, params[2]),
-                    position: params[3] as usize,
-                }                
-            },
-            3 =>  {
-                let params = machine.read_slice_from_ptr(2);
-                Input{ position: params[1] as usize }
-            },
-            4 =>  {
-                let params = machine.read_slice_from_ptr(2);
-                Output{ 
-                    value: machine.get_value(operation.param1_mode, params[1])
-                }
-            },
-            5 => {
-                let params = machine.read_slice_from_ptr(3);
-                let test_value = machine.get_value(operation.param1_mode, params[1]);
-                JumpIfTrue { 
-                    should_jump: test_value > 0, 
-                    position: machine.get_value(operation.param2_mode, params[2]) as usize,
-                }
-            },
-            6 => {
-                let params = machine.read_slice_from_ptr(3);
-                let test_value = machine.get_value(operation.param1_mode, params[1]);
-                JumpIfFalse { 
-                    should_jump: test_value == 0, 
-                    position: machine.get_value(operation.param2_mode, params[2]) as usize,
-                }
-            },
-            7 => {
-                let params = machine.read_slice_from_ptr(4);
-                IsLessThan {
-                    x: machine.get_value(operation.param1_mode, params[1]),
-                    y: machine.get_value(operation.param2_mode, params[2]),
-                    position: params[3] as usize,
-                }
-            },
-            8 => {
-                let params = machine.read_slice_from_ptr(4);
-                IsEquals {
-                    x: machine.get_value(operation.param1_mode, params[1]),
-                    y: machine.get_value(operation.param2_mode, params[2]),
-                    position: params[3] as usize,
-                }
-            },
-            99 => Halt,
-            _ => bail!("Invalid instruction: {:?}", operation),
-        })
-    }
-
-    pub fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep> {
-        use IntcodeInstruction::*;
-        Ok(match self {
-            Add{x, y, position} => {
-                machine.write_memory(*position, x + y);
-                NextStep::Skip(4)
-            },
-            Multiply{x, y, position} => {
-                machine.write_memory(*position, x * y);
-                NextStep::Skip(4)
-            },
-            Input{position} => {
-                let input = machine.input()?;
-                machine.write_memory(*position, input);
-                NextStep::Skip(2)
-            },
-            Output{value} => {
-                machine.output(*value);
-                NextStep::Skip(2)
-            },
-            JumpIfTrue{should_jump, position} => {
-                if *should_jump {
-                    NextStep::Jump(*position)
-                } else {
-                    NextStep::Skip(3)
-                }
-            },
-            JumpIfFalse{should_jump, position} => {
-                if *should_jump {
-                    NextStep::Jump(*position)
-                } else {
-                    NextStep::Skip(3)
-                }
-            },
-            IsLessThan{x, y, position} => {
-                if x < y {
-                    machine.write_memory(*position, 1);
-                } else {
-                    machine.write_memory(*position, 0);
-                }
-                NextStep::Skip(4)
-            },
-            IsEquals{x, y, position} => {
-                if x == y {
-                    machine.write_memory(*position, 1);
-                } else {
-                    machine.write_memory(*position, 0);
-                }
-                NextStep::Skip(4)
-            },
-            Halt => NextStep::Halt,
-        })
-    }
-}
-
 pub enum NextStep {
     Skip(usize),
     Jump(usize),
     Halt,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum Mode {
-    Position,
-    Immediate,
-}
 
-impl TryFrom<usize> for Mode {
-    type Error = anyhow::Error;
 
-    fn try_from(value: usize) -> Result<Self> {
-        Ok(match value {
-            0 => Mode::Position,
-            1 => Mode::Immediate,
-            _ => bail!("Invalid mode code: {}", value),
-        })
-    }
-}
 
-pub trait IntcodeInput {
-    fn process(&mut self) -> Result<i64>;
-}
-
-pub trait IntcodeOutput {
-    fn process(&mut self, value: i64);
-    fn history(&self) -> &[String];
-}
-
-pub struct IntcodeConsoleInput;
-
-impl IntcodeInput for IntcodeConsoleInput {
-    fn process(&mut self) -> Result<i64> {
-        let input = input::read_input()?;
-        Ok(i64::from_str(&input)?)
-    }
-}
-
-pub struct IntcodeConsoleOutput {
-    history: Vec<String>,
-}
-
-impl IntcodeConsoleOutput {
-    pub fn new() -> Self {
-        Self { history: Vec::new() }
-    }
-}
-
-impl IntcodeOutput for IntcodeConsoleOutput {
-    fn process(&mut self, value: i64) {
-        println!("Output: {}", value);
-    }
-
-    fn history(&self) -> &[String] {
-        &self.history
-    }
-}
-
-pub struct IntcodePresetInput {
-    inputs: Box<dyn Iterator<Item=i64>>,
-}
-
-impl IntcodePresetInput {
-    pub fn new(inputs: &[i64]) -> Self {
-        Self { inputs: Box::new(inputs.to_vec().into_iter()) }
-    }
-}
-
-impl IntcodeInput for IntcodePresetInput {
-    fn process(&mut self) -> Result<i64> {
-        match self.inputs.next() {
-            Some(input) => Ok(input),
-            None => bail!("Ran out of inputs"),
-        }
-    }
-}
-
-pub struct IntcodeHistoryOutput {
-    history: Vec<String>,
-}
-impl IntcodeHistoryOutput {
-    pub fn new() -> Self {
-        Self { history: Vec::new() }
-    }
-}
-impl IntcodeOutput for IntcodeHistoryOutput {
-    fn process(&mut self, value: i64) {
-        self.history.push(format!("{}", value));
-    }
-    
-    fn history(&self) -> &[String] {
-        &self.history
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -418,7 +171,7 @@ mod tests {
     }
 
     fn day2_input() -> Vec<i64> {
-        input::read_input_list_as::<i64>(2, b',').unwrap()
+        crate::utils::input::read_input_list_as::<i64>(2, b',').unwrap()
     }
 
     fn run_day2_test(program: &[i64], noun: i64, verb: i64) -> Result<i64> {
@@ -444,7 +197,7 @@ mod tests {
     }
 
     fn day5_input() -> Vec<i64> {
-        input::read_input_list_as::<i64>(5, b',').unwrap()
+        crate::utils::input::read_input_list_as::<i64>(5, b',').unwrap()
     }
 
     #[test]
