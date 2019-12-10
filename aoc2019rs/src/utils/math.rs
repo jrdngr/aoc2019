@@ -43,6 +43,12 @@ pub fn permutations<T>(input: &[T]) -> Vec<Vec<&T>> {
     result
 }
 
+pub fn permutations_cloned<T: Clone>(input: &[T]) -> Vec<Vec<T>> {
+    permutations(input).into_iter()
+        .map(|perm| perm.into_iter().map(Clone::clone).collect())
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
