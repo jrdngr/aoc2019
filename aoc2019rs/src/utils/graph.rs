@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::cmp::Eq;
@@ -33,7 +35,6 @@ where T: Hash + Eq + Copy
         }
     }
 
-    #[allow(dead_code)]
     pub fn add_nodes<I>(&mut self, nodes: I) 
     where I: IntoIterator<Item = T>
     {
@@ -47,7 +48,6 @@ where T: Hash + Eq + Copy
             .push(to);
     }
 
-    #[allow(dead_code)]
     pub fn add_edges<I>(&mut self, edges: I) 
     where I: IntoIterator<Item = (T, T)>
     {
@@ -62,7 +62,6 @@ where T: Hash + Eq + Copy
         self.adjacency_map.keys().collect()
     }
 
-    #[allow(dead_code)]
     pub fn edges(&self, node: T) -> &[T] {
         &self.adjacency_map[&node]
     }
@@ -72,7 +71,6 @@ where T: Hash + Eq + Copy
      * <-- Algorithms -->
      *
      */
-     #[allow(dead_code)]
     pub fn bfs(&self, start: T, target: T) -> Option<T> {
         use std::collections::VecDeque;
         use std::collections::HashSet;
@@ -99,7 +97,6 @@ where T: Hash + Eq + Copy
         None
     }
 
-    #[allow(dead_code)]
     pub fn dfs(&self, start: T, target: T) -> Option<T> {
         use std::collections::HashSet;
 

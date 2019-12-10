@@ -9,8 +9,9 @@ use crate::utils::intcode::IntcodeMachine;
 pub fn run() -> Result<String> {
     let program = input::read_input_list_as::<i64>(5, b',')?;
 
-    let mut machine = IntcodeMachine::new_console_machine(&program);
-    machine.run()?;
+    let part1 = IntcodeMachine::process_input_single_output(&program, &[1]).unwrap();
+    let part2 = IntcodeMachine::process_input_single_output(&program, &[5]).unwrap();
 
-    Ok(String::from("See last output"))
+
+    Ok(format!("Part 1: {}\nPart 2: {}", part1, part2))
 }

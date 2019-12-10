@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::{bail, Result};
 
 use std::convert::TryFrom;
@@ -22,13 +24,18 @@ impl IntcodeMachine {
         }
     }
 
-    #[cfg(test)]
     pub fn teardown(self) -> (Vec<i64>, Box<dyn IntcodeInput>, Box<dyn IntcodeOutput>) {
         (self.memory, self.input, self.output)
     }
 
     pub fn new_console_machine(machine_code: &[i64]) -> Self {
         Self::new(machine_code, Box::new(IntcodeConsoleInput), Box::new(IntcodeConsoleOutput::new()))
+    }
+
+    pub fn new_automated_machine(machine_code: &[i64], inputs: &[i64]) ->Self {
+        let input_handler = Box::new(IntcodePresetInput::new(inputs));
+        let output_handler = Box::new(IntcodeHistoryOutput::new());
+        IntcodeMachine::new(machine_code, input_handler, output_handler)
     }
 
     pub fn run(&mut self) -> Result<()> {
@@ -91,6 +98,20 @@ impl IntcodeMachine {
             let operation = MachineOperation::new(mem[ptr])?;
             IntcodeInstruction::new(operation, self)
         }
+    }
+}
+
+// Special run functions
+impl IntcodeMachine {
+    pub fn process_input(program: &[i64], inputs: &[i64]) -> Vec<String> {
+        let mut machine = IntcodeMachine::new_automated_machine(program, inputs);
+        machine.run().unwrap();
+        let (_, _, output_handler) = machine.teardown();
+        output_handler.history().to_vec()
+    }
+
+    pub fn process_input_single_output(program: &[i64], inputs: &[i64]) -> Option<String> {
+        Self::process_input(program, inputs).last().cloned()
     }
 }
 
@@ -319,17 +340,16 @@ impl IntcodeOutput for IntcodeConsoleOutput {
     }
 }
 
-#[cfg(test)]
 pub struct IntcodePresetInput {
     inputs: Box<dyn Iterator<Item=i64>>,
-}#[cfg(test)]
-#[cfg(test)]
+}
+
 impl IntcodePresetInput {
     pub fn new(inputs: &[i64]) -> Self {
         Self { inputs: Box::new(inputs.to_vec().into_iter()) }
     }
 }
-#[cfg(test)]
+
 impl IntcodeInput for IntcodePresetInput {
     fn process(&mut self) -> Result<i64> {
         match self.inputs.next() {
@@ -339,17 +359,14 @@ impl IntcodeInput for IntcodePresetInput {
     }
 }
 
-#[cfg(test)]
 pub struct IntcodeHistoryOutput {
     history: Vec<String>,
 }
-#[cfg(test)]
 impl IntcodeHistoryOutput {
     pub fn new() -> Self {
         Self { history: Vec::new() }
     }
 }
-#[cfg(test)]
 impl IntcodeOutput for IntcodeHistoryOutput {
     fn process(&mut self, value: i64) {
         self.history.push(format!("{}", value));
@@ -422,8 +439,8 @@ mod tests {
     #[test]
     fn day5_part1() {
         let program = day5_input();
-        let result = test_and_get_last_output(&program, &[1]);
-        assert_eq!(result, "9025675");
+        let result = IntcodeMachine::process_input_single_output(&program, &[1]);
+        assert_eq!(result, Some(String::from("9025675")));
     }
 
     fn day5_input() -> Vec<i64> {
@@ -432,60 +449,47 @@ mod tests {
 
     #[test]
     fn day5_comparison_tests() {
-        assert_eq!(test_and_get_last_output(&[3,9,8,9,10,9,4,9,99,-1,8], &[7]), "0");
-        assert_eq!(test_and_get_last_output(&[3,9,8,9,10,9,4,9,99,-1,8], &[8]), "1");
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,9,8,9,10,9,4,9,99,-1,8], &[7]), Some(String::from("0")));
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,9,8,9,10,9,4,9,99,-1,8], &[8]), Some(String::from("1")));
         
-        assert_eq!(test_and_get_last_output(&[3,9,7,9,10,9,4,9,99,-1,8], &[7]), "1");
-        assert_eq!(test_and_get_last_output(&[3,9,7,9,10,9,4,9,99,-1,8], &[9]), "0");
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,9,7,9,10,9,4,9,99,-1,8], &[7]), Some(String::from("1")));
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,9,7,9,10,9,4,9,99,-1,8], &[9]), Some(String::from("0")));
 
-        assert_eq!(test_and_get_last_output(&[3,3,1108,-1,8,3,4,3,99], &[7]), "0");
-        assert_eq!(test_and_get_last_output(&[3,3,1108,-1,8,3,4,3,99], &[8]), "1");
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,3,1108,-1,8,3,4,3,99], &[7]), Some(String::from("0")));
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,3,1108,-1,8,3,4,3,99], &[8]), Some(String::from("1")));
 
-        assert_eq!(test_and_get_last_output(&[3,3,1107,-1,8,3,4,3,99], &[7]), "1");
-        assert_eq!(test_and_get_last_output(&[3,3,1107,-1,8,3,4,3,99], &[9]), "0");
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,3,1107,-1,8,3,4,3,99], &[7]), Some(String::from("1")));
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,3,1107,-1,8,3,4,3,99], &[9]), Some(String::from("0")));
     }
 
     #[test]
     fn day5_jump_position_tests() {
-        assert_eq!(test_and_get_last_output(&[3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9], &[0]), "0");
-        assert_eq!(test_and_get_last_output(&[3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9], &[1]), "1");
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9], &[0]), Some(String::from("0")));
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9], &[1]), Some(String::from("1")));
     }
 
     #[test]
     fn day5_jump_immediate_tests() {
-        assert_eq!(test_and_get_last_output(&[3,3,1105,-1,9,1101,0,0,12,4,12,99,1], &[0]), "0");
-        assert_eq!(test_and_get_last_output(&[3,3,1105,-1,9,1101,0,0,12,4,12,99,1], &[1]), "1");
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,3,1105,-1,9,1101,0,0,12,4,12,99,1], &[0]), Some(String::from("0")));
+        assert_eq!(IntcodeMachine::process_input_single_output(&[3,3,1105,-1,9,1101,0,0,12,4,12,99,1], &[1]), Some(String::from("1")));
     } 
 
     #[test]
     fn day5_complex_test() {
-        assert_eq!(test_and_get_last_output(
+        assert_eq!(IntcodeMachine::process_input_single_output(
             &[3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,
               1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
-              999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99], &[7]), "999");
+              999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99], &[7]), Some(String::from("999")));
 
-        assert_eq!(test_and_get_last_output(
+        assert_eq!(IntcodeMachine::process_input_single_output(
             &[3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,
               1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
-              999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99], &[8]), "1000");
+              999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99], &[8]), Some(String::from("1000")));
 
-        assert_eq!(test_and_get_last_output(
+        assert_eq!(IntcodeMachine::process_input_single_output(
             &[3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,
               1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
-              999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99], &[9]), "1001");
+              999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99], &[9]), Some(String::from("1001")));
         
-    }
-
-    fn test_with_inputs(program: &[i64], inputs: &[i64]) -> Vec<String> {
-        let input_handler = Box::new(IntcodePresetInput::new(inputs));
-        let output_handler = Box::new(IntcodeHistoryOutput::new());
-        let mut machine = IntcodeMachine::new(&program, input_handler, output_handler);
-        machine.run().unwrap();
-        let (_, _, output_handler) = machine.teardown();
-        output_handler.history().to_vec()
-    }
-
-    fn test_and_get_last_output(program: &[i64], inputs: &[i64]) -> String {
-        test_with_inputs(program, inputs).into_iter().last().unwrap()
     }
 }
