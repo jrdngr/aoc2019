@@ -1,19 +1,17 @@
-use anyhow::{bail, Result};
-
 use std::str::FromStr;
 
 use crate::utils::input;
 
 pub trait IntcodeInput {
-    fn process(&mut self) -> Result<i64>;
+    fn process(&mut self) -> Option<i64>;
 }
 
 pub struct IntcodeConsoleInput;
 
 impl IntcodeInput for IntcodeConsoleInput {
-    fn process(&mut self) -> Result<i64> {
-        let input = input::read_input()?;
-        Ok(i64::from_str(&input)?)
+    fn process(&mut self) -> Option<i64> {
+        let input = input::read_input().expect("Error reading input");
+        Some(i64::from_str(&input).expect("Error parsing input"))
     }
 }
 
@@ -28,10 +26,15 @@ impl IntcodePresetInput {
 }
 
 impl IntcodeInput for IntcodePresetInput {
-    fn process(&mut self) -> Result<i64> {
-        match self.inputs.next() {
-            Some(input) => Ok(input),
-            None => bail!("Ran out of inputs"),
-        }
+    fn process(&mut self) -> Option<i64> {
+        Some(self.inputs.next().expect("Ran out of inputs"))
+    }
+}
+
+pub struct IntcodeBlockingInput;
+
+impl IntcodeInput for IntcodeBlockingInput {
+    fn process(&mut self) -> Option<i64> {
+        None
     }
 }

@@ -4,15 +4,15 @@ mod input;
 mod output;
 
 pub use self::instruction::IntcodeInstruction;
-pub use self::input::{IntcodeInput, IntcodeConsoleInput, IntcodePresetInput};
+pub use self::input::{IntcodeInput, IntcodeConsoleInput, IntcodePresetInput, IntcodeBlockingInput};
 pub use self::output::{IntcodeOutput, IntcodeConsoleOutput, IntcodeHistoryOutput};
 
 #[derive(Debug, PartialEq)]
 pub enum IntcodeState {
     Initialized,
     Running,
+    WaitingForInput{position: usize},
     Halting,
-    WaitingForInput,
 }
 
 pub struct IntcodeMachine<I, O> {
@@ -37,14 +37,16 @@ where I: IntcodeInput,
         }
     }
 
-    pub fn teardown(self) -> (IntcodeState, Vec<i64>, I, O) {
-        (self.state, self.memory, self.input_handler, self.output_handler)
-    }
-
     pub fn run(&mut self) {
         while self.state != IntcodeState::Halting {
-            self.run_next_instruction();
+            if self.state == IntcodeState::Running {
+                self.run_next_instruction();
+            }
         }
+    }
+    
+    pub fn teardown(self) -> (IntcodeState, Vec<i64>, I, O) {
+        (self.state, self.memory, self.input_handler, self.output_handler)
     }
 
     pub fn memory(&self) -> &[i64] {
@@ -59,11 +61,16 @@ where I: IntcodeInput,
         self.memory[position] = value;
     }
 
-    pub fn input(&mut self) -> i64 {
-        self.input_handler.process().expect("Error processing input")
+    pub fn input(&mut self, position: usize, value: i64) {
+        self.write_memory(position, value);
+        self.state = IntcodeState::Running;
     }
 
-    pub fn output(&mut self, value: i64) {
+    pub fn process_input(&mut self) -> Option<i64> {
+        self.input_handler.process()
+    }
+
+    pub fn process_output(&mut self, value: i64) {
         self.output_handler.process(value)
     }
 
@@ -103,12 +110,14 @@ where I: IntcodeInput,
                 self.instruction_pointer += 4;
             },
             Input{position} => {
-                let input = self.input();
-                self.write_memory(position, input);
+                match self.process_input() {
+                    Some(input) => self.write_memory(position, input),
+                    None => self.state = IntcodeState::WaitingForInput{position},
+                }
                 self.instruction_pointer += 2;
             },
             Output{value} => {
-                self.output(value.evaluate(&self.memory));
+                self.process_output(value.evaluate(&self.memory));
                 self.instruction_pointer += 2;
             },
             JumpIfTrue{test_position, jump_position} => {
@@ -160,9 +169,13 @@ impl IntcodeMachine<IntcodeConsoleInput, IntcodeConsoleOutput> {
 
 impl IntcodeMachine<IntcodePresetInput, IntcodeHistoryOutput> {
     pub fn new_automated_machine(machine_code: &[i64], inputs: &[i64]) -> IntcodeMachine<IntcodePresetInput, IntcodeHistoryOutput> {
-        let input_handler = IntcodePresetInput::new(inputs);
-        let output_handler = IntcodeHistoryOutput::new();
-        IntcodeMachine::new(machine_code, input_handler, output_handler)
+        IntcodeMachine::new(machine_code, IntcodePresetInput::new(inputs), IntcodeHistoryOutput::new())
+    }
+}
+
+impl IntcodeMachine<IntcodeBlockingInput, IntcodeHistoryOutput> {
+    pub fn new_blocking_machine(machine_code: &[i64]) -> IntcodeMachine<IntcodeBlockingInput, IntcodeHistoryOutput> {
+        IntcodeMachine::new(machine_code, IntcodeBlockingInput, IntcodeHistoryOutput::new())
     }
 }
 

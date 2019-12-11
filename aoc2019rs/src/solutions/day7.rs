@@ -3,7 +3,7 @@ use anyhow::Result;
 use std::str::FromStr;
 
 use crate::utils::{input, math};
-use crate::intcode::helpers;
+use crate::intcode::{IntcodeMachine, helpers};
 
 // Part 1: 43812
 // Part 2: 
@@ -34,10 +34,6 @@ fn run_day_1_phase_permutation(program: &[i64], phases: &[i64]) -> i64 {
 }
 
 fn run_day_2(program: &[i64]) -> i64 {
-    // Refactor intcode machine into multiple files
-    // Needs to be parallelizable
-    // Block on input
-
     let phase_permutations = math::permutations_cloned::<i64>(&[5, 6, 7, 8, 9]);
     
     phase_permutations.into_iter()
@@ -47,6 +43,14 @@ fn run_day_2(program: &[i64]) -> i64 {
 }
 
 fn run_day_2_phase_permutation(program: &[i64], phases: &[i64]) -> i64 {
+    let mut amplifiers = vec![
+        IntcodeMachine::new_blocking_machine(&program),
+        IntcodeMachine::new_blocking_machine(&program),
+        IntcodeMachine::new_blocking_machine(&program),
+        IntcodeMachine::new_blocking_machine(&program),
+        IntcodeMachine::new_blocking_machine(&program),
+    ];
+
     let mut next_input = 0;
     for phase in phases {
         let output = helpers::process_input_last_output(&program.clone(), &[*phase, next_input]).unwrap();
