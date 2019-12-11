@@ -6,7 +6,7 @@ use crate::utils::{input, math};
 use crate::intcode::{IntcodeMachine, IntcodeState, IntcodeOutput, helpers};
 
 // Part 1: 43812
-// Part 2: 
+// Part 2: 59597414
 
 pub fn run() -> Result<String> {
     let program = input::read_input_list_as::<i64>(7, b',')?;
@@ -62,6 +62,7 @@ fn run_day_2_phase_permutation(program: &[i64], phases: &[i64]) -> i64 {
         for amp in amplifiers.iter_mut() {
             amp.run();
             amp.input(next_input);
+            amp.run();
 
             let output = amp.output_handler()
                 .last_output()

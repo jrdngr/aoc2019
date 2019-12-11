@@ -67,6 +67,7 @@ where I: IntcodeInput,
     pub fn input(&mut self, value: i64) {
         let position = self.memory[self.instruction_pointer + 1] as usize;
         self.write_memory(position, value);
+        self.instruction_pointer += 2;
     }
 
     pub fn process_input(&mut self) -> Option<i64> {
@@ -214,5 +215,52 @@ mod tests {
     #[test]
     fn test_multiply_with_modes() {
         assert_eq!(test_program(&[1101,100,-1,4,0]), vec![1101,100,-1,4,99]);
+    }
+
+    #[test]
+    fn test_chaining() {
+        use std::str::FromStr;
+
+        let program = vec![
+            3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,
+            27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5
+        ];
+        let phases = vec![9,8,7,6,5];
+
+        let mut amplifiers = vec![
+            IntcodeMachine::new_blocking_machine(&program),
+            IntcodeMachine::new_blocking_machine(&program),
+            IntcodeMachine::new_blocking_machine(&program),
+            IntcodeMachine::new_blocking_machine(&program),
+            IntcodeMachine::new_blocking_machine(&program),
+        ];
+    
+        // Initialize with phase
+        for (i, amp) in amplifiers.iter_mut().enumerate() {
+            amp.run();
+            amp.input(phases[i]);
+        }
+    
+        let mut next_input = 0;
+        loop {
+            for amp in amplifiers.iter_mut() {
+                amp.run();
+                amp.input(next_input);
+                amp.run();
+    
+                let output = amp.output_handler()
+                    .last_output()
+                    .expect("No output available")
+                    .to_owned();
+    
+                next_input = i64::from_str(&output).unwrap();
+            }
+            if amplifiers[4].state() == &IntcodeState::Halted {
+                break;
+            }
+        }
+    
+        let last_output = amplifiers[4].output_handler().last_output().unwrap().to_owned();
+        assert_eq!(last_output, "139629729");
     }
 }
