@@ -3,7 +3,7 @@ use anyhow::Result;
 use std::str::FromStr;
 
 use crate::utils::{input, math};
-use crate::intcode::{IntcodeMachine, helpers};
+use crate::intcode::{IntcodeMachine, IntcodeState, IntcodeOutput, helpers};
 
 // Part 1: 43812
 // Part 2: 
@@ -51,13 +51,32 @@ fn run_day_2_phase_permutation(program: &[i64], phases: &[i64]) -> i64 {
         IntcodeMachine::new_blocking_machine(&program),
     ];
 
-    let mut next_input = 0;
-    for phase in phases {
-        let output = helpers::process_input_last_output(&program.clone(), &[*phase, next_input]).unwrap();
-        next_input = i64::from_str(&output).unwrap();
+    // Initialize with phase
+    for (i, amp) in amplifiers.iter_mut().enumerate() {
+        amp.run();
+        amp.input(phases[i]);
     }
 
-    next_input
+    let mut next_input = 0;
+    loop {
+        for amp in amplifiers.iter_mut() {
+            amp.run();
+            amp.input(next_input);
+
+            let output = amp.output_handler()
+                .last_output()
+                .expect("No output available")
+                .to_owned();
+
+            next_input = i64::from_str(&output).unwrap();
+        }
+        if amplifiers[4].state() == &IntcodeState::Halted {
+            break;
+        }
+    }
+
+    let last_output = amplifiers[4].output_handler().last_output().unwrap().to_owned();
+    i64::from_str(&last_output).unwrap()
 }
 
 #[cfg(test)] 

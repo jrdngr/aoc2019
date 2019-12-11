@@ -11,8 +11,8 @@ pub use self::output::{IntcodeOutput, IntcodeConsoleOutput, IntcodeHistoryOutput
 pub enum IntcodeState {
     Initialized,
     Running,
-    WaitingForInput{position: usize},
-    Halting,
+    Suspended,
+    Halted,
 }
 
 pub struct IntcodeMachine<I, O> {
@@ -38,15 +38,18 @@ where I: IntcodeInput,
     }
 
     pub fn run(&mut self) {
-        while self.state != IntcodeState::Halting {
-            if self.state == IntcodeState::Running {
-                self.run_next_instruction();
-            }
+        self.state = IntcodeState::Running;
+        while self.state == IntcodeState::Running {
+            self.run_next_instruction();
         }
     }
     
     pub fn teardown(self) -> (IntcodeState, Vec<i64>, I, O) {
         (self.state, self.memory, self.input_handler, self.output_handler)
+    }
+
+    pub fn state(&self) -> &IntcodeState {
+        &self.state
     }
 
     pub fn memory(&self) -> &[i64] {
@@ -61,9 +64,9 @@ where I: IntcodeInput,
         self.memory[position] = value;
     }
 
-    pub fn input(&mut self, position: usize, value: i64) {
+    pub fn input(&mut self, value: i64) {
+        let position = self.memory[self.instruction_pointer + 1] as usize;
         self.write_memory(position, value);
-        self.state = IntcodeState::Running;
     }
 
     pub fn process_input(&mut self) -> Option<i64> {
@@ -111,10 +114,12 @@ where I: IntcodeInput,
             },
             Input{position} => {
                 match self.process_input() {
-                    Some(input) => self.write_memory(position, input),
-                    None => self.state = IntcodeState::WaitingForInput{position},
+                    Some(input) => { 
+                        self.write_memory(position, input);
+                        self.instruction_pointer += 2;
+                    },
+                    None => self.state = IntcodeState::Suspended,
                 }
-                self.instruction_pointer += 2;
             },
             Output{value} => {
                 self.process_output(value.evaluate(&self.memory));
@@ -156,7 +161,7 @@ where I: IntcodeInput,
                 }
                 self.instruction_pointer += 4;
             },
-            Halt => self.state = IntcodeState::Halting,
+            Halt => self.state = IntcodeState::Halted,
         }     
     }
 }

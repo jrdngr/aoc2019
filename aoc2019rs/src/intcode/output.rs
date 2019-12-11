@@ -1,6 +1,9 @@
 pub trait IntcodeOutput {
     fn process(&mut self, value: i64);
     fn history(&self) -> &[String];
+    fn last_output(&self) -> Option<&String> {
+        self.history().last()
+    }
 }
 
 pub struct IntcodeConsoleOutput {
