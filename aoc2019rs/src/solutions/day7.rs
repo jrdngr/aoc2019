@@ -55,3 +55,15 @@ fn run_day_2_phase_permutation(program: &[i64], phases: &[i64]) -> i64 {
 
     next_input
 }
+
+#[cfg(test)] 
+mod tests {
+    use super::*;
+
+    #[test]
+    fn day7_part1_test() {
+        let program = input::read_input_list_as::<i64>(7, b',').unwrap();
+        let result = run_day_1(&program);
+        assert_eq!(result, 43812);
+    }
+}
