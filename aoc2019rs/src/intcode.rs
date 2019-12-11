@@ -167,5 +167,5 @@ impl IntcodeMachine<IntcodePresetInput, IntcodeHistoryOutput> {
 
 #[cfg(test)]
 mod tests {
-    
+    // Write me next!
 }
