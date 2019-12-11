@@ -35,20 +35,6 @@ fn run_test(program: &[i64], noun: i64, verb: i64) -> i64 {
 mod tests {
     use super::*;
 
-    fn test_program(program: &[i64]) -> Vec<i64> {
-        let mut machine = IntcodeMachine::new_console_machine(&program);
-        machine.run();
-        machine.memory().to_vec()
-    }
-
-    #[test]
-    fn day2_tests() {
-        assert_eq!(test_program(&[1,0,0,0,99]), vec![2,0,0,0,99]);
-        assert_eq!(test_program(&[2,3,0,3,99]), vec![2,3,0,6,99]);
-        assert_eq!(test_program(&[2,4,4,5,99,0]), vec![2,4,4,5,99,9801]);
-        assert_eq!(test_program(&[1,1,1,4,99,5,6,0,99]), vec![30,1,1,4,2,5,6,0,99]);
-    }
-
     #[test]
     fn day2_part1() {
         let input = day2_input();

@@ -81,13 +81,14 @@ where I: IntcodeInput,
         } else {
             let ptr = self.instruction_pointer;
             let opcode = self.memory[ptr];
-            let instruction = IntcodeInstruction::new(opcode, &self.memory[ptr..ptr+4]);
+            let instruction = IntcodeInstruction::new(opcode, &self.memory[ptr+1..]);
             self.operate(instruction);
         }
     }
 
     fn operate(&mut self, instruction: IntcodeInstruction) {
         use IntcodeInstruction::*;
+        
         match instruction {
             Add{x, y, position} => {
                 let x = x.evaluate(&self.memory);
@@ -167,5 +168,33 @@ impl IntcodeMachine<IntcodePresetInput, IntcodeHistoryOutput> {
 
 #[cfg(test)]
 mod tests {
-    // Write me next!
+    use super::*;
+
+    fn test_program(program: &[i64]) -> Vec<i64> {
+        let mut machine = IntcodeMachine::new_automated_machine(&program, &[]);
+        machine.run();
+        machine.memory().to_vec()
+    }
+
+    #[test]
+    fn test_add() {
+        assert_eq!(test_program(&[1,0,0,0,99]), vec![2,0,0,0,99]);
+        assert_eq!(test_program(&[1,1,1,4,99,5,6,0,99]), vec![30,1,1,4,2,5,6,0,99]);
+    }
+
+    #[test]
+    fn test_multiply() {
+        assert_eq!(test_program(&[2,3,0,3,99]), vec![2,3,0,6,99]);
+        assert_eq!(test_program(&[2,4,4,5,99,0]), vec![2,4,4,5,99,9801]);
+    }
+
+    #[test]
+    fn test_add_with_modes() {
+        assert_eq!(test_program(&[1002,4,3,4,33]), vec![1002,4,3,4,99]);
+    }
+
+    #[test]
+    fn test_multiply_with_modes() {
+        assert_eq!(test_program(&[1101,100,-1,4,0]), vec![1101,100,-1,4,99]);
+    }
 }

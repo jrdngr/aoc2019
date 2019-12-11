@@ -18,19 +18,7 @@ pub fn run() -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::intcode::{IntcodeMachine, helpers};
-
-    fn test_program(program: &[i64]) -> Vec<i64> {
-        let mut machine = IntcodeMachine::new_console_machine(&program);
-        machine.run();
-        machine.memory().to_vec()
-    }
-
-    #[test]
-    fn day5_tests() {
-        assert_eq!(test_program(&[1002,4,3,4,33]), vec![1002,4,3,4,99]);
-        assert_eq!(test_program(&[1101,100,-1,4,0]), vec![1101,100,-1,4,99]);
-    }
+    use crate::intcode::helpers;
 
     #[test]
     fn day5_part1() {
