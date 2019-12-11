@@ -1,145 +1,106 @@
-use anyhow::{bail, Result};
-
-use super::IntcodeMachine;
-use super::operation::MachineOperation;
-
-pub enum NextStep {
-    Skip(usize),
-    Jump(usize),
-    Halt,
-}
+use crate::utils::conversion;
 
 #[derive(Debug, PartialEq)]
 pub enum IntcodeInstruction {
-    Add{x: i64, y: i64, position: usize},
-    Multiply{x: i64, y: i64, position: usize},
+    Add{x: IntcodeValue, y: IntcodeValue, position: usize},
+    Multiply{x: IntcodeValue, y: IntcodeValue, position: usize},
     Input{position: usize},
-    Output{value: i64},
-    JumpIfTrue{should_jump: bool, position: usize},
-    JumpIfFalse{should_jump: bool, position: usize},
-    IsLessThan{x: i64, y: i64, position: usize},
-    IsEquals{x: i64, y: i64, position: usize},
+    Output{value: IntcodeValue},
+    JumpIfTrue{test_position: IntcodeValue, jump_position: IntcodeValue},
+    JumpIfFalse{test_position: IntcodeValue, jump_position: IntcodeValue},
+    IsLessThan{x: IntcodeValue, y: IntcodeValue, position: usize},
+    IsEquals{x: IntcodeValue, y: IntcodeValue, position: usize},
     Halt,
 }
 
 impl IntcodeInstruction {
-    pub fn new(operation: MachineOperation, machine: &IntcodeMachine) -> Result<Self> {
+    pub fn new(opcode: i64, params: &[i64]) -> Self {
         use IntcodeInstruction::*;
-        Ok(match operation.opcode {
+
+        let digits: Vec<usize> = conversion::i64_into_digits(&opcode);
+        let get_value = |param_position| {
+            let mode = *digits.get(param_position + 1).unwrap_or(&0);
+            match mode {
+                0 => IntcodeValue::Position(params[param_position] as usize),
+                1 => IntcodeValue::Immediate(params[param_position]),
+                _ => panic!("Invalid parameter mode: {}", mode),
+            }
+        };
+
+        match opcode {
             1 => {
-                let params = machine.read_slice_from_ptr(4);
                 Add {
-                    x: machine.get_value(operation.param1_mode, params[1]),
-                    y: machine.get_value(operation.param2_mode, params[2]),
-                    position: params[3] as usize,
+                    x: get_value(0),
+                    y: get_value(1),
+                    position: params[2] as usize,
                 }
             },
             2 =>  {
-                let params = machine.read_slice_from_ptr(4);
                 Multiply{ 
-                    x: machine.get_value(operation.param1_mode, params[1]),
-                    y: machine.get_value(operation.param2_mode, params[2]),
-                    position: params[3] as usize,
+                    x: get_value(0),
+                    y: get_value(1),
+                    position: params[2] as usize,
                 }                
             },
             3 =>  {
-                let params = machine.read_slice_from_ptr(2);
-                Input{ position: params[1] as usize }
+                Input{ position: params[0] as usize }
             },
             4 =>  {
-                let params = machine.read_slice_from_ptr(2);
                 Output{ 
-                    value: machine.get_value(operation.param1_mode, params[1])
+                    value: get_value(0)
                 }
             },
             5 => {
-                let params = machine.read_slice_from_ptr(3);
-                let test_value = machine.get_value(operation.param1_mode, params[1]);
                 JumpIfTrue { 
-                    should_jump: test_value > 0, 
-                    position: machine.get_value(operation.param2_mode, params[2]) as usize,
+                    test_position: get_value(0),
+                    jump_position: get_value(1),
                 }
             },
             6 => {
-                let params = machine.read_slice_from_ptr(3);
-                let test_value = machine.get_value(operation.param1_mode, params[1]);
                 JumpIfFalse { 
-                    should_jump: test_value == 0, 
-                    position: machine.get_value(operation.param2_mode, params[2]) as usize,
+                    test_position: get_value(0),
+                    jump_position: get_value(1),
                 }
             },
             7 => {
-                let params = machine.read_slice_from_ptr(4);
                 IsLessThan {
-                    x: machine.get_value(operation.param1_mode, params[1]),
-                    y: machine.get_value(operation.param2_mode, params[2]),
-                    position: params[3] as usize,
+                    x: get_value(0),
+                    y: get_value(1),
+                    position: params[2] as usize,
                 }
             },
             8 => {
-                let params = machine.read_slice_from_ptr(4);
                 IsEquals {
-                    x: machine.get_value(operation.param1_mode, params[1]),
-                    y: machine.get_value(operation.param2_mode, params[2]),
-                    position: params[3] as usize,
+                    x: get_value(0),
+                    y: get_value(1),
+                    position: params[2] as usize,
                 }
             },
             99 => Halt,
-            _ => bail!("Invalid instruction: {:?}", operation),
-        })
+            _ => panic!("Invalid instruction: {:?}", opcode),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum IntcodeValue {
+    Position(usize),
+    Immediate(i64),
+}
+
+impl IntcodeValue {
+    pub fn new(mode: usize, value: i64) -> Self {
+        match value {
+            0 => IntcodeValue::Position(value as usize),
+            1 => IntcodeValue::Immediate(value),
+            _ => panic!("Invalid mode code: {}", mode),
+        }
     }
 
-    pub fn operate(&self, machine: &mut IntcodeMachine) -> Result<NextStep> {
-        use IntcodeInstruction::*;
-        Ok(match self {
-            Add{x, y, position} => {
-                machine.write_memory(*position, x + y);
-                NextStep::Skip(4)
-            },
-            Multiply{x, y, position} => {
-                machine.write_memory(*position, x * y);
-                NextStep::Skip(4)
-            },
-            Input{position} => {
-                let input = machine.input()?;
-                machine.write_memory(*position, input);
-                NextStep::Skip(2)
-            },
-            Output{value} => {
-                machine.output(*value);
-                NextStep::Skip(2)
-            },
-            JumpIfTrue{should_jump, position} => {
-                if *should_jump {
-                    NextStep::Jump(*position)
-                } else {
-                    NextStep::Skip(3)
-                }
-            },
-            JumpIfFalse{should_jump, position} => {
-                if *should_jump {
-                    NextStep::Jump(*position)
-                } else {
-                    NextStep::Skip(3)
-                }
-            },
-            IsLessThan{x, y, position} => {
-                if x < y {
-                    machine.write_memory(*position, 1);
-                } else {
-                    machine.write_memory(*position, 0);
-                }
-                NextStep::Skip(4)
-            },
-            IsEquals{x, y, position} => {
-                if x == y {
-                    machine.write_memory(*position, 1);
-                } else {
-                    machine.write_memory(*position, 0);
-                }
-                NextStep::Skip(4)
-            },
-            Halt => NextStep::Halt,
-        })
+    pub fn evaluate(&self, memory: &[i64]) -> i64 {
+        match self {
+            IntcodeValue::Position(position) => memory[*position],
+            IntcodeValue::Immediate(value) => *value,
+        }
     }
 }
