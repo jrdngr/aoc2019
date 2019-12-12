@@ -47,8 +47,7 @@ where I: IntcodeInput,
     pub fn run(&mut self) {
         self.state = IntcodeState::Running;
         while self.state == IntcodeState::Running {
-            // self.run_next_instruction();
-            self.debug_next_instruction();
+            self.run_next_instruction();
         }
     }
 
@@ -316,3 +315,36 @@ mod tests {
         assert_eq!(&result, &program);
     }
 }
+
+/*
+    Mode:
+    0 => Position,
+    1 => Immediate,
+    2 => Relative,
+
+    Opcode:
+    1 => Add(x, y, pos)
+    2 => Multiply(x, y, pos)
+    3 => Input(pos)
+    4 => Output(value) 
+    5 => JumpIfTrue(test, jump)
+    6 => JumpIfFalse(test, jump)
+    7 => IsLessThan(x, y, pos)
+    8 => IsEquals(x, y, pos)
+    9 => SetRelativeBase(value)
+    99 => Halt,
+
+
+
+    [109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99]
+
+    SetRel(i(1)) = SetRel(1)
+    Output(r(-1)) = Output(0)
+    Add(p(100),i(1),p(100)) = Add(0, 1, 0)
+    [1, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99]
+    IsEq(p(100),i(16),p(101)) = IsEq(0,16,0)
+    [0, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99]
+    JmpF(p(101),i(0)) = JmpF(0,0)
+    Halt
+*/
+
