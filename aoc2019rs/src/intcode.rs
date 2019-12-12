@@ -109,14 +109,14 @@ where I: IntcodeInput,
         
         match instruction {
             Add{x, y, position} => {
-                let x = x.evaluate(&self.memory);
-                let y = y.evaluate(&self.memory);
+                let x = x.evaluate(&self.memory, self.relative_base);
+                let y = y.evaluate(&self.memory, self.relative_base);
                 self.write_memory(position, x + y);
                 self.instruction_pointer += 4;
             },
             Multiply{x, y, position} => {
-                let x = x.evaluate(&self.memory);
-                let y = y.evaluate(&self.memory);
+                let x = x.evaluate(&self.memory, self.relative_base);
+                let y = y.evaluate(&self.memory, self.relative_base);
                 self.write_memory(position, x * y);
                 self.instruction_pointer += 4;
             },
@@ -130,28 +130,28 @@ where I: IntcodeInput,
                 }
             },
             Output{value} => {
-                self.process_output(value.evaluate(&self.memory));
+                self.process_output(value.evaluate(&self.memory, self.relative_base));
                 self.instruction_pointer += 2;
             },
             JumpIfTrue{test_position, jump_position} => {
-                let test_value = test_position.evaluate(&self.memory);
+                let test_value = test_position.evaluate(&self.memory, self.relative_base);
                 if test_value > 0 {
-                    self.instruction_pointer = jump_position.evaluate(&self.memory) as usize;
+                    self.instruction_pointer = jump_position.evaluate(&self.memory, self.relative_base) as usize;
                 } else {
                     self.instruction_pointer += 3;
                 }
             },
             JumpIfFalse{test_position, jump_position} => {
-                let test_value = test_position.evaluate(&self.memory);
+                let test_value = test_position.evaluate(&self.memory, self.relative_base);
                 if test_value == 0 {
-                    self.instruction_pointer = jump_position.evaluate(&self.memory) as usize;
+                    self.instruction_pointer = jump_position.evaluate(&self.memory, self.relative_base) as usize;
                 } else {
                     self.instruction_pointer += 3;
                 }
             },
             IsLessThan{x, y, position} => {
-                let x = x.evaluate(&self.memory);
-                let y = y.evaluate(&self.memory);
+                let x = x.evaluate(&self.memory, self.relative_base);
+                let y = y.evaluate(&self.memory, self.relative_base);
                 if x < y {
                     self.write_memory(position, 1);
                 } else {
@@ -160,16 +160,16 @@ where I: IntcodeInput,
                 self.instruction_pointer += 4;
             },
             IsEquals{x, y, position} => {
-                let x = x.evaluate(&self.memory);
-                let y = y.evaluate(&self.memory);
+                let x = x.evaluate(&self.memory, self.relative_base);
+                let y = y.evaluate(&self.memory, self.relative_base);
                 if x == y {
                     self.write_memory(position, 1);
                 } else {
                     self.write_memory(position, 0);
                 }
                 self.instruction_pointer += 4;
-            },
-            SetRelativeBase{value} => self.relative_base = value.evaluate(&self.memory) as usize,
+            }, 
+            SetRelativeBase{value} => self.relative_base = value.evaluate(&self.memory, self.relative_base) as usize,
             Halt => self.state = IntcodeState::Halted,
         }     
     }
@@ -200,7 +200,7 @@ mod tests {
     fn test_program(program: &[i64]) -> Vec<i64> {
         let mut machine = IntcodeMachine::new_automated_machine(&program, &[]);
         machine.run();
-        machine.memory().to_vec()
+        machine.memory()[0..program.len()].to_vec()
     }
 
     #[test]
@@ -270,5 +270,17 @@ mod tests {
     
         let last_output = amplifiers[4].output_handler().last_output().unwrap().to_owned();
         assert_eq!(last_output, "139629729");
+    }
+
+    #[test]
+    fn test_relative_base() {
+        use std::str::FromStr;
+
+        let program = vec![109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99];
+        let result = helpers::process_input(&program, &[]).into_iter()
+            .flat_map(|output| i64::from_str(&output))
+            .collect::<Vec<i64>>();
+     
+        assert_eq!(&result, &program);
     }
 }

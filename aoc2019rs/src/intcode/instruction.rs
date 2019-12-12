@@ -29,6 +29,7 @@ impl IntcodeInstruction {
             match mode {
                 0 => IntcodeValue::Position(params[param_position] as usize),
                 1 => IntcodeValue::Immediate(params[param_position]),
+                2 => IntcodeValue::Relative(params[param_position]),
                 _ => panic!("Invalid parameter mode: {}", mode),
             }
         };
@@ -93,21 +94,15 @@ impl IntcodeInstruction {
 pub enum IntcodeValue {
     Position(usize),
     Immediate(i64),
+    Relative(i64),
 }
 
 impl IntcodeValue {
-    pub fn new(mode: usize, value: i64) -> Self {
-        match value {
-            0 => IntcodeValue::Position(value as usize),
-            1 => IntcodeValue::Immediate(value),
-            _ => panic!("Invalid mode code: {}", mode),
-        }
-    }
-
-    pub fn evaluate(&self, memory: &[i64]) -> i64 {
+    pub fn evaluate(&self, memory: &[i64], relative_base: usize) -> i64 {
         match self {
             IntcodeValue::Position(position) => memory[*position],
             IntcodeValue::Immediate(value) => *value,
+            IntcodeValue::Relative(offset) => memory[(relative_base as i64 + offset) as usize],
         }
     }
 }
