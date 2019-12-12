@@ -304,7 +304,7 @@ mod tests {
     }
 
     #[test]
-    fn test_relative_base() {
+    fn test_relative_base_copy_self() {
         use std::str::FromStr;
 
         let program = vec![109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99];
@@ -313,6 +313,30 @@ mod tests {
             .collect::<Vec<i64>>();
      
         assert_eq!(&result, &program);
+    }
+
+    #[test]
+    fn test_big_numbers_1() {
+        use std::str::FromStr;
+
+        let program = vec![1102,34915192,34915192,7,4,7,99,0];
+        let result = helpers::process_input(&program, &[]).into_iter()
+            .flat_map(|output| i64::from_str(&output))
+            .collect::<Vec<i64>>();
+     
+        assert_eq!(&result, &[1219070632396864]);
+    }
+
+    #[test]
+    fn test_big_numbers_2() {
+        use std::str::FromStr;
+
+        let program = vec![104,1125899906842624,99];
+        let result = helpers::process_input(&program, &[]).into_iter()
+            .flat_map(|output| i64::from_str(&output))
+            .collect::<Vec<i64>>();
+     
+        assert_eq!(&result, &[1125899906842624]);
     }
 }
 
