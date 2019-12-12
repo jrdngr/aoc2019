@@ -22,6 +22,8 @@ fn main() -> Result<()> {
         "8"  => solutions::day8::run()?,
         "9"  => solutions::day9::run()?,
         "10" => solutions::day10::run()?,
+        "11" => solutions::day11::run()?,
+        "12" => solutions::day12::run()?,
         _    => bail!("Invalid day number: {}", day_num),
     };
 
