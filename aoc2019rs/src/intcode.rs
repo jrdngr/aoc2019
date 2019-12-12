@@ -186,8 +186,8 @@ where I: IntcodeInput,
                 }
                 self.instruction_pointer += 4;
             }, 
-            SetRelativeBase{value} => {
-                self.relative_base = value.evaluate(&self.memory, self.relative_base) as usize;
+            SetRelativeBase{offset} => {
+                self.relative_base += offset.evaluate(&self.memory, self.relative_base) as usize;
                 self.instruction_pointer += 2;
             },
             Halt => self.state = IntcodeState::Halted,

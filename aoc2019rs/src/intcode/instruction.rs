@@ -10,7 +10,7 @@ pub enum IntcodeInstruction {
     JumpIfFalse{test_position: IntcodeValue, jump_position: IntcodeValue},
     IsLessThan{x: IntcodeValue, y: IntcodeValue, position: usize},
     IsEquals{x: IntcodeValue, y: IntcodeValue, position: usize},
-    SetRelativeBase{value: IntcodeValue},
+    SetRelativeBase{offset: IntcodeValue},
     Halt,
 }
 
@@ -83,7 +83,7 @@ impl IntcodeInstruction {
                     position: params[2] as usize,
                 }
             },
-            9 => SetRelativeBase { value: get_value(0) },
+            9 => SetRelativeBase { offset: get_value(0) },
             99 => Halt,
             _ => panic!("Invalid instruction: {:?}", opcode),
         }
