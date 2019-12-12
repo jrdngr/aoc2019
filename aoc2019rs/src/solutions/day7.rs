@@ -26,7 +26,10 @@ fn run_day_1(program: &[i64]) -> i64 {
 fn run_day_1_phase_permutation(program: &[i64], phases: &[i64]) -> i64 {
     let mut next_input = 0;
     for phase in phases {
-        let output = helpers::process_input_last_output(&program.clone(), &[*phase, next_input]).unwrap();
+        let output = helpers::process_input(&program.clone(), &[*phase, next_input])
+            .last()
+            .unwrap()
+            .clone();
         next_input = i64::from_str(&output).unwrap();
     }
 

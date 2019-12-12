@@ -2,10 +2,12 @@ pub mod helpers;
 mod instruction;
 mod input;
 mod output;
+mod value;
 
 pub use self::instruction::IntcodeInstruction;
 pub use self::input::{IntcodeInput, IntcodeConsoleInput, IntcodePresetInput, IntcodeBlockingInput};
 pub use self::output::{IntcodeOutput, IntcodeConsoleOutput, IntcodeHistoryOutput};
+pub use self::value::IntcodeValue;
 
 #[derive(Debug, PartialEq)]
 pub enum IntcodeState {
@@ -49,6 +51,15 @@ where I: IntcodeInput,
         while self.state == IntcodeState::Running {
             self.run_next_instruction();
         }
+    }
+
+    pub fn debug(&mut self) -> Vec<IntcodeInstruction> {
+        let mut instructions = Vec::new();
+        self.state = IntcodeState::Running;
+        while self.state == IntcodeState::Running {
+            instructions.push(self.debug_next_instruction());
+        }
+        instructions
     }
 
     pub fn teardown(self) -> (IntcodeState, Vec<i64>, I, O) {
@@ -104,20 +115,22 @@ where I: IntcodeInput,
         }
     }
 
-    fn debug_next_instruction(&mut self) {
+    fn debug_next_instruction(&mut self) -> IntcodeInstruction {
         if self.instruction_pointer >= self.memory.len() {
             panic!("Instruction pointer out of range")
         } else {
             let ptr = self.instruction_pointer;
             let opcode = self.memory[ptr];
             let instruction = IntcodeInstruction::new(opcode, &self.memory[ptr+1..]);
-            dbg!(&self);
-            dbg!(&instruction);
-            let input = crate::utils::input::read_input_with_prompt("").unwrap();
-            if input != "" {
-                panic!("Aborting execution");
-            }            
-            self.operate(instruction);
+            // dbg!(&self);
+            // dbg!(&instruction);
+            // let input = crate::utils::input::read_input_with_prompt("").unwrap();
+            // if input != "" {
+            //     panic!("Aborting execution");
+            // }            
+            self.operate(instruction.clone());
+            
+            instruction
         }        
     }
 

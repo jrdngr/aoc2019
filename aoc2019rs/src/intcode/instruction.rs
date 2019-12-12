@@ -1,6 +1,7 @@
 use crate::utils::conversion;
+use crate::intcode::IntcodeValue;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum IntcodeInstruction {
     Add{x: IntcodeValue, y: IntcodeValue, position: usize},
     Multiply{x: IntcodeValue, y: IntcodeValue, position: usize},
@@ -90,22 +91,27 @@ impl IntcodeInstruction {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum IntcodeValue {
-    Position(usize),
-    Immediate(i64),
-    Relative(i64),
-}
-
-impl IntcodeValue {
-    pub fn evaluate(&self, memory: &[i64], relative_base: usize) -> i64 {
-        match self {
-            IntcodeValue::Position(position) => memory[*position],
-            IntcodeValue::Immediate(value) => *value,
-            IntcodeValue::Relative(offset) => memory[(relative_base as i64 + offset) as usize],
-        }
+impl std::fmt::Debug for IntcodeInstruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use IntcodeInstruction::*;
+        
+        let text = match self {
+            Add{x, y, position} => format!("Add {:?} {:?} {:?}", x, y, position),
+            Multiply{x, y, position} => format!("Mul {:?} {:?} {:?}", x, y, position),
+            Input{position} => format!("Inp {:?}", position),
+            Output{value} => format!("Out {:?}", value),
+            JumpIfTrue{test_position, jump_position} => format!("JmT {:?} {:?}", test_position, jump_position),
+            JumpIfFalse{test_position, jump_position} => format!("JmF {:?} {:?}", test_position, jump_position),
+            IsLessThan{x, y, position} => format!("Lst {:?} {:?} {:?}", x, y, position),
+            IsEquals{x, y, position} => format!("Eqt {:?} {:?} {:?}", x, y, position),
+            SetRelativeBase{offset} => format!("Srb {:?}", offset),
+            Halt => format!("Halt"),
+        };
+        
+        write!(f, "{}", text)
     }
 }
+
 
 #[cfg(test)]
 mod tests {
