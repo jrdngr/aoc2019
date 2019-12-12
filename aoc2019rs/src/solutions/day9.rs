@@ -1,9 +1,12 @@
 use anyhow::Result;
 
 use crate::utils::input;
+use crate::intcode::helpers;
 
 pub fn run() -> Result<String> {
-    let _ = input::read_input_list_as::<i64>(9, b',')?;
+    let program = input::read_input_list_as::<i64>(9, b',')?;
+
+    let part1 = helpers::process_input(&program, &[1]);
     
-    Ok(String::from("Not implemented"))
+    Ok(format!("Part 1: {:?}\nPart 2: {}\n", part1, 0))
 }
