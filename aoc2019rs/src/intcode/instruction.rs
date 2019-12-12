@@ -260,6 +260,24 @@ mod tests {
             IsEquals{x: Position(0), y: Immediate(1), position: 2}
         );
     }
+
+    #[test]
+    fn test_set_relative() {
+        assert_eq!(
+            IntcodeInstruction::new(9, &[0]), 
+            SetRelativeBase{offset: Position(0)}
+        );
+
+        assert_eq!(
+            IntcodeInstruction::new(109, &[0]), 
+            SetRelativeBase{offset: Immediate(0)}
+        );
+
+        assert_eq!(
+            IntcodeInstruction::new(209, &[0]), 
+            SetRelativeBase{offset: Relative(0)}
+        );
+    }
     
     #[test]
     fn test_halt() {
