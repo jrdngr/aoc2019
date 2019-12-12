@@ -1,5 +1,5 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 
 pub fn run() -> Result<String> {
-    bail!("Not implemented")
+    Ok(String::from("Not implemented"))
 }

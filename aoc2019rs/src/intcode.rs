@@ -47,10 +47,11 @@ where I: IntcodeInput,
     pub fn run(&mut self) {
         self.state = IntcodeState::Running;
         while self.state == IntcodeState::Running {
-            self.run_next_instruction();
+            // self.run_next_instruction();
+            self.debug_next_instruction();
         }
     }
-    
+
     pub fn teardown(self) -> (IntcodeState, Vec<i64>, I, O) {
         (self.state, self.memory, self.input_handler, self.output_handler)
     }
@@ -102,6 +103,23 @@ where I: IntcodeInput,
             let instruction = IntcodeInstruction::new(opcode, &self.memory[ptr+1..]);
             self.operate(instruction);
         }
+    }
+
+    fn debug_next_instruction(&mut self) {
+        if self.instruction_pointer >= self.memory.len() {
+            panic!("Instruction pointer out of range")
+        } else {
+            let ptr = self.instruction_pointer;
+            let opcode = self.memory[ptr];
+            let instruction = IntcodeInstruction::new(opcode, &self.memory[ptr+1..]);
+            dbg!(&self);
+            dbg!(&instruction);
+            let input = crate::utils::input::read_input_with_prompt("").unwrap();
+            if input != "" {
+                panic!("Aborting execution");
+            }            
+            self.operate(instruction);
+        }        
     }
 
     fn operate(&mut self, instruction: IntcodeInstruction) {
@@ -169,9 +187,23 @@ where I: IntcodeInput,
                 }
                 self.instruction_pointer += 4;
             }, 
-            SetRelativeBase{value} => self.relative_base = value.evaluate(&self.memory, self.relative_base) as usize,
+            SetRelativeBase{value} => {
+                self.relative_base = value.evaluate(&self.memory, self.relative_base) as usize;
+                self.instruction_pointer += 2;
+            },
             Halt => self.state = IntcodeState::Halted,
         }     
+    }
+}
+
+impl<I, O> std::fmt::Debug for IntcodeMachine<I, O> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, 
+               "IntcodeMachine {{\n  state: {:?}\n  instruction_ptr: {}\n  relative_base: {}\n  memory: {:?}\n}}\n", 
+               &self.state, 
+               self.instruction_pointer,
+                self.relative_base, 
+                &self.memory[..50])
     }
 }
 

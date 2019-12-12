@@ -52,7 +52,11 @@ where T: FromStr
 
 
 pub fn read_input() -> Result<String> {
+    read_input_with_prompt("Enter input: ")
+}
+
+pub fn read_input_with_prompt(prompt: &str) -> Result<String> {
     let mut rl = Editor::<()>::new();
-    let readline = rl.readline("Enter input: ");
+    let readline = rl.readline(prompt);
     Ok(readline?)
 }
