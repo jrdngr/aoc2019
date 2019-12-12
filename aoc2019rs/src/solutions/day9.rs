@@ -22,7 +22,7 @@ pub fn run() -> Result<String> {
     JmT 63p 53i,
     Mul 3i 1i 1000,
     Srb 988i,
-    *Srb 12r,
+    Srb 12r,
     Srb 1000p,
     Srb 6r,
     Srb 3r,
@@ -33,11 +33,11 @@ pub fn run() -> Result<String> {
     JmT 63p 904i,
     Eqt 1000p 0i 63,
     JmT 63p 58i,
-    Out 25p,
+    *Out 25p,
     Out 0i,
     Halt,
 ]
 
-rel: 988
+rel: 1000
 
 */
