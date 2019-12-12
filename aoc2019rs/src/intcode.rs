@@ -18,6 +18,7 @@ pub enum IntcodeState {
 pub struct IntcodeMachine<I, O> {
     state: IntcodeState,
     instruction_pointer: usize,
+    relative_base: usize,
     memory: Vec<i64>,
     input_handler: I,
     output_handler: O,
@@ -28,10 +29,16 @@ where I: IntcodeInput,
       O: IntcodeOutput,
 {
     pub fn new(machine_code: &[i64], input_handler: I, output_handler: O) -> Self {
+        let mut memory = vec![0; 1024];
+        for i in 0..machine_code.len() {
+            memory[i] = machine_code[i];
+        }
+        
         Self {
             state: IntcodeState::Initialized,
             instruction_pointer: 0,
-            memory: machine_code.to_vec(),
+            relative_base: 0,
+            memory,
             input_handler,
             output_handler,
         }
@@ -162,6 +169,7 @@ where I: IntcodeInput,
                 }
                 self.instruction_pointer += 4;
             },
+            SetRelativeBase{value} => self.relative_base = value.evaluate(&self.memory) as usize,
             Halt => self.state = IntcodeState::Halted,
         }     
     }
