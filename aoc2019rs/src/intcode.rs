@@ -1,3 +1,4 @@
+pub mod debugger;
 pub mod helpers;
 mod instruction;
 mod input;
@@ -104,7 +105,7 @@ where I: IntcodeInput,
         &self.output_handler
     }
 
-    fn run_next_instruction(&mut self) {
+    pub fn run_next_instruction(&mut self) {
         if self.instruction_pointer >= self.memory.len() {
             panic!("Instruction pointer out of range")
         } else {
@@ -127,11 +128,11 @@ where I: IntcodeInput,
             // let input = crate::utils::input::read_input_with_prompt("").unwrap();
             // if input != "" {
             //     panic!("Aborting execution");
-            // }            
+            // }
             self.operate(instruction.clone());
             
             instruction
-        }        
+        }
     }
 
     fn operate(&mut self, instruction: IntcodeInstruction) {
@@ -211,11 +212,10 @@ where I: IntcodeInput,
 impl<I, O> std::fmt::Debug for IntcodeMachine<I, O> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, 
-               "IntcodeMachine {{\n  state: {:?}\n  instruction_ptr: {}\n  relative_base: {}\n  memory: {:?}\n}}\n", 
+               "IntcodeMachine {{\n  state: {:?}\n  instruction_ptr: {}\n  relative_base: {}\n}}\n", 
                &self.state, 
                self.instruction_pointer,
-                self.relative_base, 
-                &self.memory[..50])
+               self.relative_base)
     }
 }
 
